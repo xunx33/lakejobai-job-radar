@@ -317,6 +317,23 @@ class BossAutomation(BossScraper):
         if today_count >= min(daily_limit, MAX_APPLY_PER_DAY):
             return {"success": False, "message": f"已达今日上限({today_count}条)"}
 
+        # 岗位名称关键词过滤：命中 → 入库 status='filtered'，跳过投递
+        black_raw = (get_setting("title_filter_keywords", "") or "").strip()
+        if black_raw:
+            job = get_application_by_url(job_url)
+            title = (job["job_title"] if job else "") or ""
+            black_kws = [k.strip() for k in black_raw.split(",") if k.strip()]
+            hit = next((k for k in black_kws if k.lower() in title.lower()), None)
+            if hit:
+                app_id = job["id"] if job else add_application({
+                    "title": title, "company": (job["company"] if job else ""),
+                    "url": job_url, "status": "filtered",
+                })
+                if job and job.get("status") != "filtered":
+                    update_application_status(app_id, "filtered")
+                print(f"  🚫 命中关键词「{hit}」，已过滤不投递")
+                return {"success": True, "filtered": True, "message": f"命中关键词「{hit}」", "application_id": app_id}
+
         print(f"  🚀 投递: {job_url[:60]}...")
 
         try:

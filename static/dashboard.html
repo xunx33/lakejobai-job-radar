@@ -668,6 +668,7 @@ body{
 .badge-replied{background:var(--green-soft);color:#4ade80;border-color:rgba(34,197,94,.25)}
 .badge-skipped{background:var(--bg-3);color:var(--text-3);border-color:var(--border)}
 .badge-failed{background:var(--red-soft);color:#f87171;border-color:rgba(239,68,68,.25)}
+.badge-filtered{background:rgba(59,130,246,.15);color:#60a5fa;border-color:rgba(59,130,246,.3)}
 .badge-missing_url{background:var(--orange-soft);color:var(--orange);border-color:rgba(245,158,11,.25)}
 .badge-tag{
   background:var(--bg-3);
@@ -1500,7 +1501,7 @@ td a:hover{color:var(--accent)}
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
           <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位关键词过滤（英文逗号分隔）</span>
-          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;">
+          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;" onchange="saveTitleFilterToSettings()">
           <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位会被自动跳过投递</span>
         </div>
       </div>
@@ -1516,7 +1517,7 @@ td a:hover{color:var(--accent)}
         <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">今日投递</div></div>
         <div class="stat-card"><div class="num" id="statPending">0</div><div class="lbl">待投递</div></div>
         <div class="stat-card"><div class="num" id="statReplied">0</div><div class="lbl">HR已回复</div></div>
-        <div class="stat-card"><div class="num" id="statLimit">15</div><div class="lbl">每日上限</div></div>
+        <div class="stat-card"><div class="num" id="statFiltered">0</div><div class="lbl">已过滤</div></div>
       </div>
       <div class="section" style="padding:16px 18px;">
         <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
@@ -1524,6 +1525,7 @@ td a:hover{color:var(--accent)}
           <button class="btn btn-sm" onclick="loadApplications('pending')">待投递</button>
           <button class="btn btn-sm" onclick="loadApplications('applied')">已投递</button>
           <button class="btn btn-sm" onclick="loadApplications('replied')">已回复</button>
+          <button class="btn btn-sm" onclick="loadApplications('filtered')">已过滤</button>
           <button class="btn btn-sm" onclick="loadShortlists()">收藏</button>
           <button class="btn btn-sm btn-primary" onclick="batchApplyPending()" style="margin-left:auto;">一键投递待投递</button>
         </div>
@@ -1734,17 +1736,27 @@ function refreshStatus(){
     document.getElementById('btnStart').disabled=s.browser_running;
     document.getElementById('btnStop').disabled=!s.browser_running;
   }).catch(()=>{});
-  fetch('/api/stats').then(r=>r.json()).then(renderFunnel).catch(()=>{});
+  // /api/stats 同步到：搜索页 funnel + 投递记录页 stat 卡片（同一个数据源）
+  fetch('/api/stats').then(r=>r.json()).then(d=>{
+    renderFunnel(d);
+    animateNumber(document.getElementById('statPending'),d.pending||0);
+    animateNumber(document.getElementById('statReplied'),d.replied||0);
+    animateNumber(document.getElementById('statFiltered'),d.filtered||0);
+  }).catch(()=>{});
 }
 function renderFunnel(d){
   if(!d||d.today_applications===undefined)return;
   const el=document.getElementById('funnelBar');if(!el)return;
   el.style.display='grid';
+  // 已过滤数字：优先用后端返回值（d.filtered），前端累加是兜底
+  let filteredEl=document.getElementById('funnelFiltered');
+  let filteredVal=d.filtered;
+  if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
   el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending">'+(d.pending||0)+'</div><div class="lbl">待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today">'+(d.today_applications||0)+'</div><div class="lbl">已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
-    +'<div class="funnel-card" title="本次搜索中被岗位名称黑名单过滤掉的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">0</div><div class="lbl">已过滤</div></div>';
+    +'<div class="funnel-card" title="全量被岗位名称黑名单过滤的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">'+filteredVal+'</div><div class="lbl">已过滤</div></div>';
 }
 function updateStatusUI(s){
   ['browserDot','monitorDot'].forEach(id=>{let d=document.getElementById(id);d.className='dot '+(s[id==='browserDot'?'browser_running':'monitor_running']?'on':'off');});
@@ -1813,8 +1825,8 @@ function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{curre
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
   if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';animateNumber(document.getElementById('statPending'),0);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
-  const sl={pending:'待投递',applied:'已投递',replied:'HR已回复',skipped:'已跳过',failed:'失败',missing_url:'缺少链接'};
-  const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',missing_url:'badge-missing_url'};
+  const sl={pending:'待投递',applied:'已投递',replied:'HR已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
+  const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered',missing_url:'badge-missing_url'};
   const inactiveDaysEl=document.getElementById('inactiveDays');
   const inactiveThreshold=inactiveDaysEl?parseInt(inactiveDaysEl.value||'7',10):7;
   grid.innerHTML=jobs.map((j,idx)=>{
@@ -1939,7 +1951,7 @@ function renderAppPage(){
   if(appCurrentPage>totalPages)appCurrentPage=totalPages;
   let page=appAllJobs.slice(start,start+APP_PAGE_SIZE);
   if(!total){tbody.innerHTML='<tr><td colspan="6" class="empty">暂无记录</td></tr>';document.getElementById('appPagination').innerHTML='';return;}
-  let sl={pending:'待投递',applied:'已投递',replied:'已回复',skipped:'已跳过',failed:'失败'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed'};
+  let sl={pending:'待投递',applied:'已投递',replied:'已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered'};
   tbody.innerHTML=page.map(j=>{let s=j.status||'pending';return'<tr><td><a href="'+attr(j.job_url)+'" target="_blank">'+esc(j.job_title||j.title||'未知')+'</a></td><td>'+esc(j.company||'')+'</td><td>'+esc(j.salary||'')+'</td><td>'+esc(j.city||'')+'</td><td><span class="badge '+sb[s]+'">'+sl[s]+'</span></td><td>'+(j.job_url?'<button class="btn btn-sm btn-primary" onclick="applyOne(\''+attr(j.job_url)+'\',this)">投递</button>':'')+'</td></tr>';}).join('');
   document.getElementById('appPagination').innerHTML='<button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage=1;renderAppPage()">«</button><button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage--;renderAppPage()">‹</button><span>'+(start+1)+'-'+Math.min(start+APP_PAGE_SIZE,total)+' / '+total+'</span><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage++;renderAppPage()">›</button><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage=totalPages;renderAppPage()">»</button>';
 }
@@ -2057,6 +2069,12 @@ function startWechatAutoRefresh(){
 function stopWechatAutoRefresh(){if(wechatRefreshTimer){clearInterval(wechatRefreshTimer);wechatRefreshTimer=null;}}
 function copyWechat(text,btn){navigator.clipboard.writeText(text).then(()=>{btn.textContent='已复制';btn.classList.add('btn-success');btn.classList.remove('btn-primary');setTimeout(()=>{btn.textContent='复制';btn.classList.remove('btn-success');btn.classList.add('btn-primary');},1500);toast('已复制微信号','success',1200);});}
 
+// 岗位关键词过滤 → 同步到 settings（让后端能读到）
+function saveTitleFilterToSettings(){
+  let v=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
+  fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title_filter_keywords:v})}).catch(()=>{});
+}
+
 function batchApplyAll(maxPages){
   maxPages=maxPages||1;
   let blackKeywordsRaw=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
@@ -2150,6 +2168,8 @@ function loadSettings(){
     let s=d.settings||{};
     rememberUi();
     rememberUiBind();
+    // 同步后端保存的过滤关键字到 UI
+    let bl=document.getElementById('searchTitleBlacklist');if(bl)bl.value=s.title_filter_keywords||'';
     setVal('setGreeting',s.greeting_template||'');
     setVal('setGreetingMode',s.greeting_mode||'template');
     setVal('setSmartGreetingPrompt',s.smart_greeting_prompt||'');

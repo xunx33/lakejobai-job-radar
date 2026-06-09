@@ -49,6 +49,9 @@ from boss_state import (
     get_today_pending_count,
     count_hours_replied_in_range,
     count_interest_level,
+    count_filtered_applications,
+    get_daily_limit,
+    list_applications,
     add_to_shortlist,
     remove_from_shortlist,
     list_shortlists,
@@ -282,6 +285,7 @@ class SettingsUpdate(BaseModel):
     greeting_template: Optional[str] = None
     greeting_mode: Optional[str] = None
     smart_greeting_prompt: Optional[str] = None
+    title_filter_keywords: Optional[str] = None
     greeting_enabled: Optional[str] = None
     ai_reply_style: Optional[str] = None
     daily_apply_limit: Optional[str] = None
@@ -355,10 +359,15 @@ def get_stats():
     today = get_daily_stats()
     return {
         "today_applications": get_today_application_count(),
-        "pending": get_today_pending_count(),
+        # 待投递：用 list_applications 同步统计，保持和 /api/jobs?status=pending 一致
+        "pending": len(list_applications(status="pending", limit=10000)),
         "replied": count_hours_replied_in_range(24),
         "interview": count_interest_level("high"),
         "active_conversations": len(list_active_conversations()),
+        # 每日上限：读 settings.daily_apply_limit，而不是 daily_stats 表
+        "daily_limit": get_daily_limit(),
+        # 已过滤：全量 status='filtered' 计数
+        "filtered": count_filtered_applications(),
         "daily_stats": today,
     }
 

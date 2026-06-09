@@ -268,6 +268,23 @@ def get_today_pending_count() -> int:
     return row["cnt"] if row else 0
 
 
+def count_filtered_applications() -> int:
+    """全量统计 status='filtered' 的岗位（投递时被关键词过滤的）。"""
+    row = get_db().execute("SELECT COUNT(*) as cnt FROM applications WHERE status='filtered'").fetchone()
+    return row["cnt"] if row else 0
+
+
+def get_daily_limit() -> int:
+    """每日投递上限，优先读 settings 表，否则取 daily_stats.daily_limit，否则兜底 15。"""
+    try:
+        v = get_setting("daily_apply_limit")
+        if v:
+            return int(v)
+    except Exception:
+        pass
+    return 15
+
+
 def count_hours_replied_in_range(hours: int) -> int:
     row = (
         get_db()
