@@ -46,10 +46,24 @@ SELECTORS = {
         'span:has-text("立即沟通")',
         'div:has-text("立即沟通")',
     ],
+    # BOSS 2025+ 改成中央浮窗聊天弹窗（URL 仍停留在 /job_detail/...），
+    # 老代码只认 #chat-input 会找不到。补足弹窗内的常见选择器。
     "chat_input": [
         "#chat-input",
         'div[contenteditable="true"]',
+        'textarea[placeholder*="请简"]',
+        'textarea[placeholder*="请输入"]',
+        'input[placeholder*="请简"]',
+        'input[placeholder*="请输入"]',
         '[class*="chat-input"]',
+        '[class*="dialog"] textarea',
+        '[class*="dialog"] [contenteditable="true"]',
+        '[class*="modal"] textarea',
+        '[class*="modal"] [contenteditable="true"]',
+        '[class*="popup"] textarea',
+        '[class*="popup"] [contenteditable="true"]',
+        'textarea',
+        '[contenteditable="true"]',
         '[placeholder*="请输入"]',
     ],
     "chat_send_button": [
@@ -340,7 +354,8 @@ class BossAutomation(BossScraper):
                 return {"success": False, "message": "BOSS直聘今日沟通次数已用完"}
 
             # 等待聊天窗口加载
-            chat_input = self._find_element(SELECTORS["chat_input"], timeout_ms=5000)
+            # BOSS 2025+ 改成中央弹窗，可能 2-8s 才完全渲染
+            chat_input = self._find_element(SELECTORS["chat_input"], timeout_ms=10000)
 
             # 发送招呼语
             greeting_text = greeting or get_setting(
@@ -354,6 +369,13 @@ class BossAutomation(BossScraper):
                     print(f"  ✅ 招呼语已发送")
                 else:
                     print(f"  ⚠️ 招招呼语发送失败")
+            elif not chat_input:
+                cur_url = ""
+                try:
+                    cur_url = self.page.url
+                except Exception:
+                    pass
+                print(f"  ⚠️ 没找到聊天输入框 (URL: {cur_url[:80]})，跳过招呼语")
 
             # 记录到 SQLite
             existing = get_application_by_url(job_url)
@@ -659,16 +681,21 @@ class BossAutomation(BossScraper):
     def send_message(self, text: str, fast: bool = True) -> bool:
         """逐字模拟键盘输入 + Enter 发送，确保 BOSS 检测到输入事件。"""
         try:
-            # 点击输入框激活
-            try:
-                self.page.locator("#chat-input").first.click()
-                time.sleep(0.15)
-            except Exception:
+            # 点击输入框激活 — 按 SELECTORS 顺序尝试（含弹窗/textarea 兜底）
+            clicked = False
+            for sel in SELECTORS["chat_input"]:
                 try:
-                    self.page.locator('[contenteditable="true"]').first.click()
-                    time.sleep(0.15)
+                    loc = self.page.locator(sel).first
+                    if loc.is_visible():
+                        loc.click()
+                        time.sleep(0.15)
+                        clicked = True
+                        break
                 except Exception:
-                    pass
+                    continue
+            if not clicked:
+                print("  ⚠️ send_message 找不到可点击的聊天输入框")
+                return False
 
             # 清除已有内容
             try:
