@@ -382,9 +382,9 @@ body{
 }
 .search-row.advanced{
   background:var(--bg-1);
-  display:none;
+  display:flex;
+  flex-wrap:wrap;
 }
-.search-shell.expanded .search-row.advanced{display:flex}
 .search-toggle{
   display:flex;
   align-items:center;
@@ -1494,8 +1494,13 @@ td a:hover{color:var(--accent)}
             <span class="toggle-label">跳过HR <input type="number" id="inactiveDays" value="7" min="1" max="60" class="toggle-num"> 天未活跃</span>
           </label>
         </div>
+        <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
+          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称黑名单</span>
+          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;">
+          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字（英文逗号分隔）的岗位会被自动跳过投递</span>
+        </div>
         <div class="search-toggle" onclick="document.getElementById('searchShell').classList.toggle('expanded')">
-          <span class="chev">▶</span> 高级筛选
+          <span class="chev">▶</span> 收起
         </div>
       </div>
 
@@ -1742,7 +1747,8 @@ function renderFunnel(d){
   el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending">'+(d.pending||0)+'</div><div class="lbl">待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today">'+(d.today_applications||0)+'</div><div class="lbl">已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>';
+    +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
+    +'<div class="funnel-card" title="本次搜索中被岗位名称黑名单过滤掉的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">0</div><div class="lbl">已过滤</div></div>';
 }
 function updateStatusUI(s){
   ['browserDot','monitorDot'].forEach(id=>{let d=document.getElementById(id);d.className='dot '+(s[id==='browserDot'?'browser_running':'monitor_running']?'on':'off');});
@@ -2053,7 +2059,23 @@ function copyWechat(text,btn){navigator.clipboard.writeText(text).then(()=>{btn.
 
 function batchApplyAll(maxPages){
   maxPages=maxPages||1;
+  let blackKeywordsRaw=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
+  let blackKeywords=blackKeywordsRaw?blackKeywordsRaw.split(',').map(s=>s.trim()).filter(Boolean):[];
   let pending=currentSearchJobs.filter(j=>j.job_url&&j.status!=='applied'&&j.status!=='replied');
+  if(blackKeywords.length){
+    let before=pending.length;
+    pending=pending.filter(j=>{
+      let t=(j.job_title||'');
+      return !blackKeywords.some(kw=>t.toLowerCase().includes(kw.toLowerCase()));
+    });
+    let filtered=before-pending.length;
+    if(filtered>0)toast(`已过滤 ${filtered} 个岗位（命中黑名单）`,'info',2000);
+    let funnelEl=document.getElementById('funnelFiltered');
+    if(funnelEl){
+      let prev=parseInt(funnelEl.textContent||'0',10)||0;
+      funnelEl.textContent=prev+filtered;
+    }
+  }
   if(maxPages===1&&!pending.length){toast('没有待投递的岗位，请先搜索','warning');return;}
   let dedup=document.getElementById('chkDedupCompany')?document.getElementById('chkDedupCompany').checked:true;
   let filterInactive=document.getElementById('chkFilterInactiveHr')?document.getElementById('chkFilterInactiveHr').checked:true;
