@@ -320,8 +320,10 @@ class BossAutomation(BossScraper):
         print(f"  🚀 投递: {job_url[:60]}...")
 
         try:
-            self.page.goto(job_url, wait_until="load", timeout=45000)
-            pause(1, 2)
+            # 改用 domcontentloaded：详情页有大量外链广告/统计脚本，
+            # 等 load 会卡 10-30s，对投递无意义；dom 出完就够。
+            self.page.goto(job_url, wait_until="domcontentloaded", timeout=20000)
+            pause(0.5, 1)
 
             if not self.check_page_safety():
                 return {"success": False, "message": "安全检查未通过"}
