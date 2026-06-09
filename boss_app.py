@@ -279,7 +279,8 @@ class SendMessageRequest(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
-    greeting_template: Optional[str] = None
+    greeting_mode: Optional[str] = None
+    smart_greeting_prompt: Optional[str] = None
     greeting_enabled: Optional[str] = None
     ai_reply_style: Optional[str] = None
     daily_apply_limit: Optional[str] = None

@@ -1586,9 +1586,8 @@ td a:hover{color:var(--accent)}
       </div>
 
       <div class="section"><h3>招呼语</h3>
-        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleSmartPrompt()"><option value="template">固定模板</option><option value="smart">智能（AI 读 JD 生成 3 痛点 + 效果付费）</option></select></div>
-        <div class="setting-row"><label>招呼语</label><textarea id="setGreeting" placeholder="{job_title} 会被替换为实际岗位名">您好！看到贵司在招{job_title}，挺感兴趣的。PS：正在和你聊天的这个AI工具是我自己开发的——就当是我的技术名片了</textarea></div>
-        <div id="smartPromptRow" class="setting-row" style="display:none"><label>智能跟进 Prompt</label><textarea id="setSmartGreetingPrompt" rows="4" placeholder="留空使用默认" style="width:100%;"></textarea></div>
+        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleSmartPrompt()"><option value="template">固定模板</option><option value="smart">智能</option></select></div>
+        <div id="smartPromptRow" class="setting-row" style="display:none"><label>智能生成招呼语提示词</label><textarea id="setSmartGreetingPrompt" rows="4" placeholder="留空使用默认" style="width:100%;"></textarea></div>
       </div>
 
       <div class="section"><h3>高级设置</h3>
@@ -2113,7 +2112,6 @@ function setVal(id,v){let el=document.getElementById(id);if(el)el.value=v;}
 function loadSettings(){
   fetch('/api/settings').then(r=>r.json()).then(d=>{
     let s=d.settings||{};
-    setVal('setGreeting',s.greeting_template||'');
     setVal('setGreetingMode',s.greeting_mode||'template');
     setVal('setSmartGreetingPrompt',s.smart_greeting_prompt||'');
     setVal('setStyle',s.ai_reply_style||'professional');
@@ -2184,7 +2182,7 @@ function toggleSmartPrompt(){
   if(row) row.style.display = document.getElementById('setGreetingMode').value === 'smart' ? 'block' : 'none';
 }
 function saveSettings(){
-  let data={greeting_mode:document.getElementById('setGreetingMode').value,greeting_template:document.getElementById('setGreeting').value,smart_greeting_prompt:document.getElementById('setSmartGreetingPrompt').value,user_location:document.getElementById('setLocation').value,ai_reply_style:document.getElementById('setStyle').value,daily_apply_limit:document.getElementById('setDailyLimit').value,min_reply_delay_sec:document.getElementById('setMinDelay').value,max_reply_delay_sec:document.getElementById('setMaxDelay').value,resume_summary:document.getElementById('setResume').value,wechat_id:document.getElementById('setWechat').value,search_keywords:document.getElementById('setSearchKeywords').value.replace(/\n/g,','),auto_reply_enabled:document.getElementById('setAutoReply').value,ai_base_url:document.getElementById('setAIBaseUrl').value,ai_model:document.getElementById('setAIModel').value,max_hr_inactive_days:document.getElementById('setMaxHrInactiveDays').value,filter_inactive_hr:document.getElementById('setFilterInactiveHr').value,dedup_company_by_default:document.getElementById('setDedupByDefault').value,conversation_cooldown_sec:document.getElementById('setConversationCooldown').value,reply_rules_system_prompt:document.getElementById('setReplyRules').value};
+  let data={greeting_mode:document.getElementById('setGreetingMode').value,smart_greeting_prompt:document.getElementById('setSmartGreetingPrompt').value,user_location:document.getElementById('setLocation').value,ai_reply_style:document.getElementById('setStyle').value,daily_apply_limit:document.getElementById('setDailyLimit').value,min_reply_delay_sec:document.getElementById('setMinDelay').value,max_reply_delay_sec:document.getElementById('setMaxDelay').value,resume_summary:document.getElementById('setResume').value,wechat_id:document.getElementById('setWechat').value,search_keywords:document.getElementById('setSearchKeywords').value.replace(/\n/g,','),auto_reply_enabled:document.getElementById('setAutoReply').value,ai_base_url:document.getElementById('setAIBaseUrl').value,ai_model:document.getElementById('setAIModel').value,max_hr_inactive_days:document.getElementById('setMaxHrInactiveDays').value,filter_inactive_hr:document.getElementById('setFilterInactiveHr').value,dedup_company_by_default:document.getElementById('setDedupByDefault').value,conversation_cooldown_sec:document.getElementById('setConversationCooldown').value,reply_rules_system_prompt:document.getElementById('setReplyRules').value};
   let key=document.getElementById('setAIApiKey').value;if(key)data.ai_api_key=key;
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(()=>{
     toast('设置已保存','success');

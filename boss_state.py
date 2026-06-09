@@ -130,7 +130,8 @@ def init_db():
     """)
     # 默认设置
     defaults = {
-        "greeting_template": "您好！看到贵司在招{job_title}，很感兴趣。PS：正在和你聊天的这个AI工具是我自己开发的——就当是我的技术名片了",
+        "greeting_mode": "template",
+        "smart_greeting_prompt": "",
         "greeting_enabled": "true",
         "ai_reply_style": "professional",
         "daily_apply_limit": "15",
