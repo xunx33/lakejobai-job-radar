@@ -1586,7 +1586,7 @@ td a:hover{color:var(--accent)}
       </div>
 
       <div class="section"><h3>招呼语</h3>
-        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleGreetingRows()"><option value="template">固定模板</option><option value="smart">智能</option></select></div>
+        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleGreetingRows()"><option value="template">固定模板</option><option value="smart">智能生成（自动注入简历摘要，失败回退固定模板）</option></select></div>
         <div id="greetingTemplateRow" class="setting-row"><label>招呼语</label><textarea id="setGreeting" placeholder="{job_title} 会被替换为实际岗位名"></textarea></div>
         <div id="smartPromptRow" class="setting-row" style="display:none"><label>智能生成招呼语提示词</label><textarea id="setSmartGreetingPrompt" rows="4" placeholder="留空使用默认" style="width:100%;"></textarea></div>
       </div>

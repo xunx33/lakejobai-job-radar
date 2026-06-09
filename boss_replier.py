@@ -293,8 +293,18 @@ def generate_smart_greeting(
     except Exception as e:
         print(f"  ⚠️ generate_smart_greeting LLM 调用失败: {e}")
 
-    # Fallback：AI 失败时仍给一条合理的招呼
-    return f"您好，我对贵公司的{job_title or '相关岗位'}岗位很感兴趣，可以详细了解一下吗？"
+    # Fallback：AI 失败时回退到用户保存的「固定模板」做模板替换
+    template = get_setting(
+        "greeting_template",
+        "您好，我对贵公司的{job_title}岗位很感兴趣，可以详细了解一下吗？",
+    )
+    fallback = template.replace("{job_title}", job_title or "相关岗位").replace(
+        "{company}", company or "贵公司"
+    )
+    if "{job_title}" in fallback or "{company}" in fallback:
+        fallback = f"您好，我对贵公司的{job_title or '相关岗位'}岗位很感兴趣，可以详细了解一下吗？"
+    print(f"  ↩️ 智能生成失败，已回退到固定模板")
+    return fallback
 
 
 def generate_greeting(
