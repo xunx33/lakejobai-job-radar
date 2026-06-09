@@ -72,7 +72,7 @@ app.add_middleware(
 
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+app.mount("/static", StaticFiles(directory=str(static_dir), html=False), name="static")
 
 # ── 全局状态 ──
 automation: Optional[BossAutomation] = None
@@ -330,7 +330,11 @@ async def broadcast_ws(message: dict):
 def index():
     html_path = static_dir / "dashboard.html"
     if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+        resp = HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
     return HTMLResponse(content="<h1>BOSS直聘自动化控制台</h1><p>dashboard.html 未找到</p>")
 
 
