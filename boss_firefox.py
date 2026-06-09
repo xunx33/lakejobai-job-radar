@@ -587,13 +587,16 @@ class BossScraper:
 
     def search(self, keyword, city_code="100010000"):
         """搜索关键词，返回岗位列表"""
+        t0 = time.time()
         url = "https://www.zhipin.com/web/geek/job?query=%s&city=%s" % (
             quote_plus(keyword),
             city_code,
         )
         self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
-        self._wait_for_jobs_loaded(min_count=10, max_wait_s=15)
+        loaded_count = self._wait_for_jobs_loaded(min_count=10, max_wait_s=15)
+        t_wait = time.time() - t0
         self._scroll_all()
+        t_scroll = time.time() - t0
 
         dom_jobs = self._extract_job_cards()
         if dom_jobs:
@@ -655,6 +658,13 @@ class BossScraper:
             for j in jobs:
                 if not j["url"] and j["title"][:12] in lm:
                     j["url"] = lm[j["title"][:12]]
+        elapsed = time.time() - t0
+        print(f"[search] keyword={keyword} city={city_code} "
+              f"loaded={loaded_count} wait={t_wait:.1f}s "
+              f"scroll={t_scroll - t_wait:.1f}s total={elapsed:.1f}s "
+              f"found={len(jobs)} via={'dom' if dom_jobs else 'text'}")
+        if elapsed < 1.5:
+            print(f"[search] WARN: search finished in {elapsed:.1f}s, may have missed jobs")
         return jobs
 
     def _filter_by_welfare(self, jobs, welfare_keywords):
