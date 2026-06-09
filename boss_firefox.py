@@ -724,22 +724,27 @@ class BossScraper:
             )
         return jobs
 
-    def _scroll_all(self, max_scrolls: int = 60, stable_rounds: int = 3):
-        """持续滚动直到没有新内容加载，或达到最大滚动次数。"""
+    def _scroll_all(self, max_scrolls: int = 80, stable_rounds: int = 4):
+        """持续滚动直到没有新岗位卡片加载，或达到最大滚动次数。
+
+        改用卡片计数代替 scrollHeight 判断：
+        BOSS 是 virtual scroll + lazy load，scrollHeight 在加载完成前可能不变，
+        导致提前退出只拿到部分结果。
+        """
         try:
-            last_height = 0
+            last_count = 0
             stable_count = 0
             for _ in range(max_scrolls):
-                h = self.page.evaluate("document.body.scrollHeight")
-                if h == last_height:
+                self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                time.sleep(random.uniform(0.8, 1.5))
+                cur_count = self.page.locator('a[href*="/job_detail/"]').count()
+                if cur_count == last_count and cur_count > 0:
                     stable_count += 1
                     if stable_count >= stable_rounds:
                         break
                 else:
                     stable_count = 0
-                    last_height = h
-                self.page.evaluate("window.scrollTo(0,%d)" % h)
-                time.sleep(random.uniform(0.5, 1.0))
+                    last_count = cur_count
             # 滚回顶部，确保 DOM 完整渲染
             self.page.evaluate("window.scrollTo(0,0)")
             time.sleep(random.uniform(0.3, 0.5))
