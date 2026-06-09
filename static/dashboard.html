@@ -1244,7 +1244,7 @@ td a:hover{color:var(--accent)}
 /* ============ Funnel bar ============ */
 .funnel-grid{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,minmax(0,1fr));
   gap:12px;
   margin-bottom:16px;
 }
@@ -1361,7 +1361,7 @@ td a:hover{color:var(--accent)}
   .chat-container{flex-direction:column;height:auto}
   .chat-list{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--border)}
   .jobs-grid{grid-template-columns:1fr}
-  .funnel-grid{grid-template-columns:repeat(2,1fr)}
+  .funnel-grid{grid-template-columns:repeat(5,1fr)}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
 
@@ -1498,9 +1498,6 @@ td a:hover{color:var(--accent)}
           <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称黑名单</span>
           <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;">
           <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字（英文逗号分隔）的岗位会被自动跳过投递</span>
-        </div>
-        <div class="search-toggle" onclick="document.getElementById('searchShell').classList.toggle('expanded')">
-          <span class="chev">▶</span> 收起
         </div>
       </div>
 
