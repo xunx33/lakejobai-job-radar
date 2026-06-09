@@ -2076,9 +2076,7 @@ function saveTitleFilterToSettings(){
 // 所在城市 → 同步到 settings（持久化"个人资料"中的城市）
 function saveLocationToSettings(){
   let v=(document.getElementById('setLocation')?.value||'').trim();
-  fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_location:v})}).then(()=>{
-    toast('所在城市已保存','success',1200);
-  }).catch(()=>{});
+  fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_location:v})}).catch(()=>{});
 }
 
 function batchApplyAll(maxPages){
