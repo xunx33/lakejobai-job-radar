@@ -1583,7 +1583,7 @@ td a:hover{color:var(--accent)}
       </div>
 
       <div class="section"><h3>个人资料</h3>
-        <div class="setting-row"><label>所在城市</label><input type="text" id="setLocation" placeholder="如：深圳、北京、远程"></div>
+        <div class="setting-row"><label>所在城市</label><input type="text" id="setLocation" placeholder="如：深圳、北京、远程" onchange="saveLocationToSettings()"></div>
         <div class="setting-row"><label>微信号</label><input type="text" id="setWechat" placeholder="AI 会在合适时机发给 HR"></div>
         <div class="setting-row"><label>简历摘要</label><textarea id="setResume" placeholder="你的技能、项目经验……  AI 会在聊天中引用这些信息" rows="3"></textarea></div>
       </div>
@@ -2073,6 +2073,14 @@ function saveTitleFilterToSettings(){
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title_filter_keywords:v})}).catch(()=>{});
 }
 
+// 所在城市 → 同步到 settings（持久化"个人资料"中的城市）
+function saveLocationToSettings(){
+  let v=(document.getElementById('setLocation')?.value||'').trim();
+  fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_location:v})}).then(()=>{
+    toast('所在城市已保存','success',1200);
+  }).catch(()=>{});
+}
+
 function batchApplyAll(maxPages){
   maxPages=maxPages||1;
   let blackKeywordsRaw=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
@@ -2175,9 +2183,9 @@ function loadSettings(){
     setVal('setDailyLimit',s.daily_apply_limit||'15');
     setVal('setMinDelay',s.min_reply_delay_sec||'30');
     setVal('setMaxDelay',s.max_reply_delay_sec||'120');
+    setVal('setLocation',s.user_location||'');
     setVal('setResume',s.resume_summary||'');
     setVal('setWechat',s.wechat_id||'');
-    setVal('setLocation',s.user_location||'');
     setVal('setSearchKeywords',s.search_keywords||'');
     setVal('setAutoReply',s.auto_reply_enabled||'true');
     setVal('setAIBaseUrl',s.ai_base_url||'');
