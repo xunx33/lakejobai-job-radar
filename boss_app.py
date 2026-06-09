@@ -632,6 +632,8 @@ async def search_jobs(req: SearchRequest):
         city_code = CITY_MAP.get(req.city or get_setting("default_city", "全国"), "100010000")
         try:
             jobs = await _run_pw(automation.search, req.keyword, city_code)
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"搜索失败: {e}")
 
