@@ -1427,8 +1427,8 @@ td a:hover{color:var(--accent)}
           </div>
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;align-items:center;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">批量关键词</span>
-          <input type="text" id="setSearchKeywords" placeholder="AI Agent,大模型开发,AI产品经理" style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;font-family:var(--font);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s;">
+          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">批量岗位关键词（英文逗号分隔）</span>
+          <input type="text" id="setSearchKeywords" placeholder="例如：AI Agent,大模型开发,AI产品经理" style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;font-family:var(--font);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s;">
           <button class="btn btn-success" onclick="batchSearch()">批量搜索</button>
         </div>
         <div class="search-row advanced">
@@ -1499,9 +1499,9 @@ td a:hover{color:var(--accent)}
           </label>
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称黑名单</span>
+          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位关键词过滤（英文逗号分隔）</span>
           <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;">
-          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字（英文逗号分隔）的岗位会被自动跳过投递</span>
+          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位会被自动跳过投递</span>
         </div>
       </div>
 
