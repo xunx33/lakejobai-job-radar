@@ -440,7 +440,27 @@ class BossAutomation(BossScraper):
             return {"success": False, "message": str(e)}
 
     def apply_batch(self, job_urls: List[str], greeting_template: Optional[str] = None) -> List[dict]:
-        """批量投递，带间隔延迟。可通过设置 batch_delay_sec 控制间隔。"""
+        """批量投递，带间隔延迟。可通过设置 batch_delay_sec 控制间隔。
+
+        智能模式下：只对第一条调 LLM 生成招呼语，后续复用同一句，
+        避免每个岗位都等 2-8s 的 LLM 响应。
+        """
+        from boss_replier import generate_greeting
+
+        if not greeting_template and job_urls:
+            # 批量第一条：决定后续所有岗位的招呼语
+            job = get_application_by_url(job_urls[0])
+            title = job["job_title"] if job else "相关岗位"
+            company = job["company"] if job else "贵公司"
+            jd_text = job["description"] if job and job.get("description") else ""
+            style = get_setting("ai_reply_style", "professional")
+            smart = get_setting("greeting_mode", "template") == "smart"
+            greeting_template = generate_greeting(
+                title, company, style=style, jd_text=jd_text, smart=smart
+            )
+            if smart:
+                print(f"  🤖 批量智能招呼语已生成 ({len(greeting_template)}字)，后续 {len(job_urls)-1} 条复用")
+
         results = []
         min_delay = int(get_setting("batch_delay_min_sec", "30"))
         max_delay = int(get_setting("batch_delay_max_sec", "90"))
