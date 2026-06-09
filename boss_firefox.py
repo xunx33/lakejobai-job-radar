@@ -560,14 +560,39 @@ class BossScraper:
 
     # ── 搜索列表页 ──
 
+    def _wait_for_jobs_loaded(self, min_count: int = 10, max_wait_s: int = 15) -> int:
+        """等待 BOSS 岗位卡片 DOM 加载完成。
+
+        替代固定的 pause(3,5)，通过轮询卡片计数判断是否加载完。
+        返回当前卡片数（0 表示超时未加载）。
+        """
+        start = time.time()
+        last_count = -1
+        stable = 0
+        count = 0
+        while time.time() - start < max_wait_s:
+            try:
+                count = self.page.locator('a[href*="/job_detail/"]').count()
+            except Exception:
+                count = 0
+            if count >= min_count and count == last_count:
+                stable += 1
+                if stable >= 3:
+                    return count
+            else:
+                stable = 0
+                last_count = count
+            time.sleep(0.5)
+        return count
+
     def search(self, keyword, city_code="100010000"):
         """搜索关键词，返回岗位列表"""
         url = "https://www.zhipin.com/web/geek/job?query=%s&city=%s" % (
             quote_plus(keyword),
             city_code,
         )
-        self.page.goto(url, wait_until="load", timeout=45000)
-        pause(3, 5)
+        self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        self._wait_for_jobs_loaded(min_count=10, max_wait_s=15)
         self._scroll_all()
 
         dom_jobs = self._extract_job_cards()
