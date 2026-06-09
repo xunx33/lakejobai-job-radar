@@ -202,9 +202,117 @@ def generate_reply(
         return "", ""
 
 
-def generate_greeting(
-    job_title: str, company: str, template: str = "", style: str = "professional"
+def _read_jd_summary(url_or_uid: str, max_chars: int = 500) -> str:
+    """从数据库读岗位 JD 摘要；如果读不到则返回空串。"""
+    try:
+        from boss_state import get_db
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT description FROM applications WHERE url=? OR job_id=? LIMIT 1",
+            (url_or_uid, url_or_uid),
+        )
+        row = cur.fetchone()
+        conn.close()
+        if row and row[0]:
+            return row[0][:max_chars]
+    except Exception:
+        pass
+    return ""
+
+
+def generate_smart_greeting(
+    job_title: str,
+    company: str,
+    jd_text: str = "",
+    style: str = "professional",
 ) -> str:
+    """
+    智能模式：根据 JD 摘要生成个性化招呼语。
+    - 读 settings.smart_greeting_prompt 作为 user prompt 前缀（用户自定义）
+    - 读 settings.resume_summary 作为候选人摘要
+    - 调 DeepSeek 生成 ≤100 字的招呼语
+    - 失败时降级到模板招呼
+    """
+    user_prompt_template = get_setting("smart_greeting_prompt", "").strip()
+    resume_summary = get_setting("resume_summary", "").strip()
+
+    if not user_prompt_template:
+        # 默认 prompt（与 UI placeholder 一致）
+        user_prompt_template = (
+            "作为求职导师帮我生成一条100字以内的招呼语，要求：\n"
+            "1. 禁止使用任何称呼和公司/单位名，如 您好XX 或 **\n"
+            "2. 突出我与岗位匹配的能力点，如跨较大展现出的学习能力和转行的态度\n"
+            "3. 除了打招呼不生成其他内容，方便直接复制"
+        )
+
+    style_hint = {
+        "professional": "语气正式专业",
+        "casual": "语气轻松友好",
+        "enthusiastic": "语气热情积极",
+    }.get(style, "语气正式专业")
+
+    jd_block = f"\n\n【岗位 JD 摘要】\n{jd_text[:400]}" if jd_text else ""
+    resume_block = f"\n\n【候选人简历摘要】\n{resume_summary[:300]}" if resume_summary else ""
+
+    user_prompt = f"""【应聘岗位】{job_title or '相关岗位'}
+【招聘公司】{company or '贵公司'}{jd_block}{resume_block}
+
+{user_prompt_template}
+
+回复风格: {style_hint}
+只输出招呼语正文本身，不要加引号、不要加"招呼语："等前缀、不要解释。"""
+
+    system_prompt = (
+        "你是求职领域的 AI 助手，专门帮候选人在 BOSS 直聘上生成个性化招呼语。"
+        "严格遵守用户 prompt 中的字数、格式和禁忌要求。"
+        "只输出最终招呼语文本，不要任何解释、列表或 Markdown。"
+    )
+
+    try:
+        raw = llm_chat_deepseek(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.8,
+        )
+        text = (raw or "").strip()
+        # 去掉模型偶尔加的引号/前缀
+        if text.startswith('"') and text.endswith('"'):
+            text = text[1:-1].strip()
+        if text.startswith("'") and text.endswith("'"):
+            text = text[1:-1].strip()
+        for prefix in ("招呼语：", "招呼语:", "回复：", "回复:", "【", "答：", "答:"):
+            if text.startswith(prefix):
+                text = text[len(prefix):].strip()
+
+        if 5 <= len(text) <= 200:
+            return text
+    except Exception as e:
+        print(f"  ⚠️ generate_smart_greeting LLM 调用失败: {e}")
+
+    # Fallback：AI 失败时仍给一条合理的招呼
+    return f"您好，我对贵公司的{job_title or '相关岗位'}岗位很感兴趣，可以详细了解一下吗？"
+
+
+def generate_greeting(
+    job_title: str,
+    company: str,
+    template: str = "",
+    style: str = "professional",
+    jd_text: str = "",
+    smart: bool = False,
+) -> str:
+    """
+    根据 mode 决定走哪条路：
+    - smart=True → 调 LLM 生成个性化招呼（generate_smart_greeting）
+    - smart=False → 走模板替换（保留原行为）
+    """
+    if smart:
+        return generate_smart_greeting(job_title, company, jd_text=jd_text, style=style)
+
     if not template:
         template = get_setting(
             "greeting_template",

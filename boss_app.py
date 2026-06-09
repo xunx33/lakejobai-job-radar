@@ -709,8 +709,14 @@ async def apply_to_job(req: ApplyRequest):
         job = get_application_by_url(req.job_url)
         title = job["job_title"] if job else "相关岗位"
         company = job["company"] if job else "贵公司"
+        jd_text = job["description"] if job and job.get("description") else ""
         style = get_setting("ai_reply_style", "professional")
-        greeting = generate_greeting(title, company, style=style)
+        smart = get_setting("greeting_mode", "template") == "smart"
+        greeting = generate_greeting(
+            title, company, style=style, jd_text=jd_text, smart=smart
+        )
+        if smart:
+            print(f"  🤖 智能招呼语已生成 ({len(greeting)}字): {greeting[:50]}...")
 
     # 在后台线程运行（Playwright 是同步的）
     result = await _run_pw(automation.apply_to_job, req.job_url, greeting)
