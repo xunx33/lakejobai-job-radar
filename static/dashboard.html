@@ -2246,8 +2246,34 @@ function toggleGreetingRows(){
   document.getElementById('smartPromptRow').style.display = mode === 'smart' ? 'block' : 'none';
 }
 function saveSettings(){
-  let data={greeting_mode:document.getElementById('setGreetingMode').value,greeting_template:document.getElementById('setGreeting').value,smart_greeting_prompt:document.getElementById('setSmartGreetingPrompt').value,user_location:document.getElementById('setLocation').value,ai_reply_style:document.getElementById('setStyle').value,daily_apply_limit:document.getElementById('setDailyLimit').value,min_reply_delay_sec:document.getElementById('setMinDelay').value,max_reply_delay_sec:document.getElementById('setMaxDelay').value,resume_summary:document.getElementById('setResume').value,wechat_id:document.getElementById('setWechat').value,search_keywords:document.getElementById('setSearchKeywords').value.replace(/\n/g,','),auto_reply_enabled:document.getElementById('setAutoReply').value,ai_base_url:document.getElementById('setAIBaseUrl').value,ai_model:document.getElementById('setAIModel').value,max_hr_inactive_days:document.getElementById('setMaxHrInactiveDays').value,filter_inactive_hr:document.getElementById('setFilterInactiveHr').value,dedup_company_by_default:document.getElementById('setDedupByDefault').value,conversation_cooldown_sec:document.getElementById('setConversationCooldown').value,reply_rules_system_prompt:document.getElementById('setReplyRules').value};
-  let key=document.getElementById('setAIApiKey').value;if(key)data.ai_api_key=key;
+  function valOr(id, fallback){
+    let el=document.getElementById(id);
+    return el?el.value:fallback;
+  }
+  // 拉一份后端最新设置做基线，避免前端删了某 input 后 PUT 把已存值清空
+  fetch('/api/settings').then(r=>r.json()).then(d=>{
+    let data=d.settings||{};
+    // 用 UI 当前值覆盖
+    data.greeting_mode=valOr('setGreetingMode','template');
+    data.greeting_template=valOr('setGreeting','');
+    data.smart_greeting_prompt=valOr('setSmartGreetingPrompt','');
+    data.user_location=valOr('setLocation','');
+    data.ai_reply_style=valOr('setStyle','professional');
+    data.daily_apply_limit=valOr('setDailyLimit','15');
+    data.min_reply_delay_sec=valOr('setMinDelay','30');
+    data.max_reply_delay_sec=valOr('setMaxDelay','120');
+    data.resume_summary=valOr('setResume','');
+    data.wechat_id=valOr('setWechat','');
+    data.search_keywords=valOr('setSearchKeywords','');
+    data.auto_reply_enabled=valOr('setAutoReply','false');
+    data.ai_base_url=valOr('setAIBaseUrl','');
+    data.ai_model=valOr('setAIModel','');
+    data.conversation_cooldown_sec=valOr('setConversationCooldown','60');
+    data.reply_rules_system_prompt=valOr('setReplyRules','');
+    delete data.ai_api_key;
+    delete data.ai_key_configured;
+    let key=document.getElementById('setAIApiKey')?.value||'';
+    if(key)data.ai_api_key=key;
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(()=>{
     let btn=document.getElementById('btnSaveSettings')||document.querySelector('button[onclick="saveSettings()"]');
     if(btn){
@@ -2258,9 +2284,11 @@ function saveSettings(){
     }
     if(key){document.getElementById('aiKeyStatus').innerHTML='<span style="color:var(--green);">已配置</span>';document.getElementById('setAIApiKey').placeholder='已配置';document.getElementById('setAIApiKey').value='';}
     refreshStatus();
-  }).catch(()=>{
+  }).catch(err=>{
+    console.error('saveSettings failed',err);
     let btn=document.getElementById('btnSaveSettings')||document.querySelector('button[onclick="saveSettings()"]');
     if(btn){let orig=btn.textContent;btn.textContent='✗ 保存失败';setTimeout(()=>{btn.textContent=orig;},2000);}
+  });
   });
 }
 const PLATFORMS={deepseek:{baseUrl:'https://api.deepseek.com/v1',models:[{v:'deepseek-v4-pro',t:'DeepSeek V4 Pro'},{v:'deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek-reasoner',t:'DeepSeek Reasoner'}]},openrouter:{baseUrl:'https://openrouter.ai/api/v1',models:[{v:'openrouter/auto',t:'Auto'},{v:'deepseek/deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek/deepseek-r1',t:'DeepSeek R1'},{v:'anthropic/claude-sonnet-4',t:'Claude Sonnet 4'},{v:'google/gemini-2.5-flash',t:'Gemini 2.5 Flash'}]},mimo:{baseUrl:'https://token-plan-sgp.xiaomimimo.com/v1',models:[{v:'mi-undefined',t:'MiMo'}]},custom:{baseUrl:'',models:[]}};
