@@ -467,6 +467,21 @@ def add_application(job: dict) -> int:
         ),
     )
     db.commit()
+    # 岗位列表上限 1000 条：超出时删除最旧的 pending 记录（保留 applied 等已投递状态）
+    _MAX_APPLICATIONS = 1000
+    total = db.execute("SELECT COUNT(*) as cnt FROM applications").fetchone()["cnt"]
+    if total > _MAX_APPLICATIONS:
+        excess = total - _MAX_APPLICATIONS
+        db.execute(
+            """DELETE FROM applications WHERE id IN (
+                SELECT id FROM applications
+                WHERE status='pending'
+                ORDER BY created_at ASC
+                LIMIT ?
+            )""",
+            (excess,),
+        )
+        db.commit()
     return cur.lastrowid if cur.lastrowid else 0
 
 
