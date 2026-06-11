@@ -607,14 +607,6 @@ def count_hours_replied_in_range(hours: int) -> int:
     return row["cnt"] if row else 0
 
 
-def count_all_replied_conversations() -> int:
-    """全量统计 HR 回复过的会话数（last_message_from='hr'），用于聊天页「HR已回复」卡片。"""
-    row = get_db().execute(
-        "SELECT COUNT(*) as cnt FROM conversations WHERE last_message_from='hr'"
-    ).fetchone()
-    return row["cnt"] if row else 0
-
-
 def count_interest_level(level: str) -> int:
     row = get_db().execute("SELECT COUNT(*) as cnt FROM conversations WHERE interest_level=?", (level,)).fetchone()
     return row["cnt"] if row else 0

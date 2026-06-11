@@ -1559,8 +1559,8 @@ td a:hover{color:var(--accent)}
         </div>
       </div>
       <div class="stats-grid" style="margin-top:14px;">
-        <div class="stat-card"><div class="num" id="chatStatReplied">0</div><div class="lbl">HR已回复</div></div>
-        <div class="stat-card"><div class="num" id="chatStatInterview">0</div><div class="lbl">面试</div></div>
+        <div class="stat-card"><div class="num" id="chatStatReplied">0</div><div class="lbl">收到回复</div></div>
+        <div class="stat-card"><div class="num" id="chatStatInterview">0</div><div class="lbl">面试/微信</div></div>
       </div>
     </div>
 
@@ -1743,8 +1743,8 @@ function refreshStatus(){
     animateNumber(document.getElementById('statTotalJobs'),d.total_jobs||0);
     animateNumber(document.getElementById('statToday'),d.applied||0);
     animateNumber(document.getElementById('statFiltered'),d.filtered||0);
-    // 聊天页统计卡片：HR已回复（全量）+ 面试（全量）
-    animateNumber(document.getElementById('chatStatReplied'),d.chat_replied||0);
+    // 聊天页统计卡片：收到回复(24h) + 面试/微信(全量)
+    animateNumber(document.getElementById('chatStatReplied'),d.replied||0);
     animateNumber(document.getElementById('chatStatInterview'),d.interview||0);
   }).catch(()=>{});
 }

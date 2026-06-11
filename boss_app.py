@@ -48,7 +48,6 @@ from boss_state import (
     get_wechat_exchanges,
     get_today_pending_count,
     count_hours_replied_in_range,
-    count_all_replied_conversations,
     count_interest_level,
     count_filtered_applications,
     get_total_application_count,
@@ -456,11 +455,9 @@ def get_stats():
         "today_applications": get_today_application_count(),
         # 待投递：用 list_applications 同步统计，保持和 /api/jobs?status=pending 一致
         "pending": len(list_applications(status="pending", limit=10000)),
-        # 搜索页 funnel 用：最近24小时 HR 回复数
+        # 搜索页 funnel + 聊天页「收到回复」卡片：最近24小时 HR 回复数
         "replied": count_hours_replied_in_range(24),
-        # 聊天页「HR已回复」卡片：全量 HR 回复过的会话数
-        "chat_replied": count_all_replied_conversations(),
-        # 聊天页「面试」卡片 + 搜索页 funnel：interest_level='high' 的会话数
+        # 聊天页「面试/微信」卡片 + 搜索页 funnel：interest_level='high' 的会话数
         "interview": count_interest_level("high"),
         "active_conversations": len(list_active_conversations()),
         # 每日上限：读 settings.daily_apply_limit，而不是 daily_stats 表
