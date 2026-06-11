@@ -1629,7 +1629,7 @@ td a:hover{color:var(--accent)}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0,sessionSearchApplied=0;
+let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0,sessionSearchApplied=0,sessionSearchFiltered=0;
 
 function switchTab(tab){
   activeTab=tab;
@@ -1752,15 +1752,12 @@ function renderFunnel(d){
   if(!d||d.total_jobs===undefined)return;
   const el=document.getElementById('funnelBar');if(!el)return;
   el.style.display='grid';
-  // 已过滤数字：优先用后端返回值（d.filtered），前端累加是兜底
-  let filteredEl=document.getElementById('funnelFiltered');
-  let filteredVal=d.filtered;
-  if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
+  // 搜索页「搜索过滤」用会话级变量，和「当前待投递」「当前已投递」逻辑一致
   el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">当前待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today" id="funnelApplied">'+sessionSearchApplied+'</div><div class="lbl">当前已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">收到回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试/微信</div></div>'
-    +'<div class="funnel-card" title="全量被岗位名称黑名单过滤的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">'+filteredVal+'</div><div class="lbl">搜索过滤</div></div>';
+    +'<div class="funnel-card"><div class="num" data-key="filtered" id="funnelFiltered">'+sessionSearchFiltered+'</div><div class="lbl">搜索过滤</div></div>';
 }
 function updateStatusUI(s){
   ['browserDot','monitorDot'].forEach(id=>{let d=document.getElementById(id);d.className='dot '+(s[id==='browserDot'?'browser_running':'monitor_running']?'on':'off');});
@@ -1834,9 +1831,10 @@ function doSearch(){
       summary+='，已过滤 '+filteredTotal+' 条（'+parts.join('、')+'）';
     }
     document.getElementById('searchStatus').innerHTML='<div class="status-banner success" style="margin-top:8px;">'+summary+'</div>';
-    // 更新漏斗「已过滤」数字
+    // 更新漏斗「搜索过滤」数字（会话级累加）
+    sessionSearchFiltered+=filteredTotal;
     let funnelEl=document.getElementById('funnelFiltered');
-    if(funnelEl){let prev=parseInt(funnelEl.textContent||'0',10)||0;funnelEl.textContent=prev+filteredTotal;}
+    if(funnelEl)animateNumber(funnelEl,sessionSearchFiltered);
     let statFilteredEl=document.getElementById('statFiltered');
     if(statFilteredEl){let prev=parseInt(statFilteredEl.textContent||'0',10)||0;animateNumber(statFilteredEl,prev+filteredTotal);}
     currentSearchJobs.length?renderJobs(currentSearchJobs):loadJobs();
@@ -2127,11 +2125,9 @@ function batchApplyAll(maxPages){
     });
     let filtered=before-pending.length;
     if(filtered>0)toast(`已过滤 ${filtered} 个岗位（命中黑名单）`,'info',2000);
+    sessionSearchFiltered+=filtered;
     let funnelEl=document.getElementById('funnelFiltered');
-    if(funnelEl){
-      let prev=parseInt(funnelEl.textContent||'0',10)||0;
-      funnelEl.textContent=prev+filtered;
-    }
+    if(funnelEl)animateNumber(funnelEl,sessionSearchFiltered);
   }
   if(maxPages===1&&!pending.length){toast('没有待投递的岗位，请先搜索','warning');return;}
   let dedup=document.getElementById('chkDedupCompany')?document.getElementById('chkDedupCompany').checked:true;
