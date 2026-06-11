@@ -1515,7 +1515,7 @@ td a:hover{color:var(--accent)}
     <div class="tab" id="tab-applications">
       <div class="stats-grid">
         <div class="stat-card"><div class="num" id="statTotalJobs">0</div><div class="lbl">岗位列表</div></div>
-        <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">今日投递</div></div>
+        <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">列表内投递</div></div>
         <div class="stat-card"><div class="num" id="statReplied">0</div><div class="lbl">HR已回复</div></div>
         <div class="stat-card"><div class="num" id="statFiltered">0</div><div class="lbl">已过滤</div></div>
       </div>
@@ -1626,7 +1626,7 @@ td a:hover{color:var(--accent)}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0;
+let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0,sessionSearchApplied=0;
 
 function switchTab(tab){
   activeTab=tab;
@@ -1730,7 +1730,7 @@ function handleWS(msg){
 function refreshStatus(){
   fetch('/api/status').then(r=>r.json()).then(s=>{
     updateStatusUI(s);
-    animateNumber(document.getElementById('statToday'),s.today_applications||0);
+    // statToday 改为「列表内投递」，数据从 /api/stats 取，不再用 today_applications
     document.getElementById('btnStart').disabled=s.browser_running;
     document.getElementById('btnStop').disabled=!s.browser_running;
   }).catch(()=>{});
@@ -1738,12 +1738,13 @@ function refreshStatus(){
   fetch('/api/stats').then(r=>r.json()).then(d=>{
     renderFunnel(d);
     animateNumber(document.getElementById('statTotalJobs'),d.total_jobs||0);
+    animateNumber(document.getElementById('statToday'),d.applied||0);
     animateNumber(document.getElementById('statReplied'),d.replied||0);
     animateNumber(document.getElementById('statFiltered'),d.filtered||0);
   }).catch(()=>{});
 }
 function renderFunnel(d){
-  if(!d||d.today_applications===undefined)return;
+  if(!d||d.total_jobs===undefined)return;
   const el=document.getElementById('funnelBar');if(!el)return;
   el.style.display='grid';
   // 已过滤数字：优先用后端返回值（d.filtered），前端累加是兜底
@@ -1751,7 +1752,7 @@ function renderFunnel(d){
   let filteredVal=d.filtered;
   if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
   el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">待投递</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="today">'+(d.today_applications||0)+'</div><div class="lbl">已投递</div></div>'
+    +'<div class="funnel-card"><div class="num" data-key="today" id="funnelApplied">'+sessionSearchApplied+'</div><div class="lbl">已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
     +'<div class="funnel-card" title="全量被岗位名称黑名单过滤的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">'+filteredVal+'</div><div class="lbl">已过滤</div></div>';
@@ -1883,9 +1884,11 @@ function renderJobs(jobs){
       +'</div>';
   }).join('');
   const pendingCount=jobs.filter(j=>(j.status||'pending')==='pending').length;
-  // 会话级待投递：只在有搜索结果时更新（搜索完成后、投递后刷新）
-  if(currentSearchJobs.length){sessionSearchPending=pendingCount;}
+  const appliedCount=jobs.filter(j=>j.status==='applied'||j.status==='replied').length;
+  // 会话级统计：只在有搜索结果时更新（搜索完成后、投递后刷新）
+  if(currentSearchJobs.length){sessionSearchPending=pendingCount;sessionSearchApplied=appliedCount;}
   let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,sessionSearchPending);
+  let fa=document.getElementById('funnelApplied');if(fa)animateNumber(fa,sessionSearchApplied);
   const metaEl=document.getElementById('metaJobs');
   if(metaEl)metaEl.textContent=pendingCount+' 待投递';
 }

@@ -578,6 +578,12 @@ def get_total_application_count() -> int:
     return row["cnt"] if row else 0
 
 
+def count_applied_applications() -> int:
+    """全量统计 status='applied' 的岗位（投递记录页「列表内投递」卡片）。"""
+    row = get_db().execute("SELECT COUNT(*) as cnt FROM applications WHERE status='applied'").fetchone()
+    return row["cnt"] if row else 0
+
+
 def get_daily_limit() -> int:
     """每日投递上限，优先读 settings 表，否则取 daily_stats.daily_limit，否则兜底 15。"""
     try:
