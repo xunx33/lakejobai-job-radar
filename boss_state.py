@@ -5,6 +5,7 @@ SQLite 数据层 —— 投递记录、聊天消息、设置、每日统计。
 
 import sqlite3
 import threading
+import json
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -115,6 +116,23 @@ def init_db():
         db.execute("ALTER TABLE conversations ADD COLUMN phone_shared INTEGER DEFAULT 0")
     except sqlite3.OperationalError:
         pass
+    # CHANGES.md §1 §4: 公司去重 + HR 活跃度列
+    try:
+        db.execute("ALTER TABLE applications ADD COLUMN company_id TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE applications ADD COLUMN brand_name TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE applications ADD COLUMN hr_active_label TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE applications ADD COLUMN hr_active_days INTEGER DEFAULT -1")
+    except sqlite3.OperationalError:
+        pass
     # 候选池表
     db.executescript("""
         CREATE TABLE IF NOT EXISTS shortlists (
@@ -128,6 +146,26 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    # CHANGES.md §3: 公司信息缓存表 (24h TTL, UNIQUE(name, company_id))
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS companies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            company_id TEXT,
+            industry TEXT,
+            scale TEXT,
+            stage TEXT,
+            employee_count TEXT,
+            founded TEXT,
+            open_positions TEXT,
+            description TEXT,
+            source_url TEXT,
+            fetched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(name COLLATE NOCASE, company_id)
+        );
+    """)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name COLLATE NOCASE)")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_companies_fetched_at ON companies(fetched_at)")
     # 默认设置
     defaults = {
         "greeting_template": "您好！看到贵司在招{job_title}，挺感兴趣的。PS：正在和你聊天的这个AI工具是我自己开发的——就当是我的技术名片了",
@@ -145,6 +183,9 @@ def init_db():
         "wechat_id": "",
         "search_keywords": "AI Agent,大模型开发,AI产品经理,RAG开发,大模型应用",
         "default_city": "淄博",
+        "max_hr_inactive_days": "7",
+        "filter_inactive_hr": "true",
+        "dedup_company_by_default": "true",
     }
     for k, v in defaults.items():
         db.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
@@ -160,16 +201,214 @@ def _rows_to_list(rows) -> List[dict]:
 
 
 # ══════════════════════════════════════
+#  公司去重 (CHANGES §1)
+# ══════════════════════════════════════
+
+_COMPANY_SUFFIXES = (
+    "有限公司", "有限责任公司", "股份有限公司", "集团", "集团有限",
+    "(中国)", "（中国）", "股份", "科技", "技术", "信息",
+)
+
+
+def _normalize_company_name(name: str) -> str:
+    """去除中英文公司后缀, 做模糊匹配.
+
+    Examples:
+        "字节跳动有限公司" -> "字节跳动"
+        "阿里巴巴（中国）集团" -> "阿里巴巴"
+        " 小米科技 " -> "小米科技"
+    """
+    if not name:
+        return ""
+    n = name.strip()
+    for suf in _COMPANY_SUFFIXES:
+        if n.endswith(suf):
+            n = n[: -len(suf)].strip()
+    return n
+
+
+def has_company_been_applied(company: str, company_id: str = "") -> dict:
+    """检查某公司是否已投递过.
+
+    - status in ('applied', 'replied', 'interview') 视为已发
+    - pending / skipped / failed / filtered 不算
+    - 精确匹配 + 用 _normalize_company_name 模糊匹配
+    - company_id 非空时, 也按 company_id 精确匹配
+
+    Returns:
+        {"applied": bool, "count": int, "matched_name": str}
+    """
+    if not company and not company_id:
+        return {"applied": False, "count": 0, "matched_name": ""}
+
+    db = get_db()
+    applied_status = ("applied", "replied", "interview")
+    placeholders = ",".join("?" * len(applied_status))
+    name_norm = _normalize_company_name(company)
+
+    # 1. company_id 精确
+    if company_id:
+        row = db.execute(
+            f"SELECT COUNT(*) as cnt, MAX(company) as name FROM applications "
+            f"WHERE company_id=? AND status IN ({placeholders})",
+            (company_id, *applied_status),
+        ).fetchone()
+        if row and row["cnt"] > 0:
+            return {"applied": True, "count": row["cnt"], "matched_name": row["name"] or ""}
+
+    # 2. 精确
+    if company:
+        row = db.execute(
+            f"SELECT COUNT(*) as cnt FROM applications "
+            f"WHERE company=? AND status IN ({placeholders})",
+            (company, *applied_status),
+        ).fetchone()
+        if row and row["cnt"] > 0:
+            return {"applied": True, "count": row["cnt"], "matched_name": company}
+
+    # 3. 模糊 (按归一化名匹配, 排除前缀冲突: 字节跳动 不匹配 字节外包)
+    if name_norm and len(name_norm) >= 2:
+        rows = db.execute(
+            f"SELECT company, COUNT(*) as cnt FROM applications "
+            f"WHERE status IN ({placeholders}) "
+            f"GROUP BY company",
+            (*applied_status,),
+        ).fetchall()
+        for r in rows:
+            if _normalize_company_name(r["company"]) == name_norm:
+                return {"applied": True, "count": r["cnt"], "matched_name": r["company"]}
+
+    return {"applied": False, "count": 0, "matched_name": ""}
+
+
+def list_applied_companies(limit: int = 200) -> List[dict]:
+    """列出所有已发过的公司及最近一次投递时间.
+
+    排除: 经验字段 (3-5年/1-3年/应届 等) 错填到 company 列的脏数据.
+    """
+    return _rows_to_list(
+        get_db()
+        .execute(
+            """SELECT company, COUNT(*) as applied_count, MAX(updated_at) as last_applied_at
+               FROM applications
+               WHERE company IS NOT NULL AND company != ''
+                 AND length(company) >= 2 AND length(company) <= 40
+                 AND company NOT GLOB '*[0-9]年*'
+                 AND company NOT GLOB '*经验*'
+                 AND company NOT GLOB '*学历*'
+                 AND company NOT GLOB '*应届*'
+                 AND company NOT IN ('中专/中技','高中','大专','本科','硕士','博士','学历不限')
+                 AND status IN ('applied', 'replied', 'interview')
+               GROUP BY company COLLATE NOCASE
+               ORDER BY last_applied_at DESC
+               LIMIT ?""",
+            (limit,),
+        )
+        .fetchall()
+    )
+
+
+# ══════════════════════════════════════
+#  公司信息缓存 (CHANGES §3, 24h TTL)
+# ══════════════════════════════════════
+
+COMPANY_CACHE_TTL_HOURS = 24
+
+
+def _company_cache_row_to_dict(row) -> Optional[dict]:
+    if not row:
+        return None
+    d = dict(row)
+    raw_positions = d.get("open_positions") or "[]"
+    try:
+        d["open_positions"] = json.loads(raw_positions) if isinstance(raw_positions, str) else (raw_positions or [])
+    except (json.JSONDecodeError, TypeError):
+        d["open_positions"] = []
+    return d
+
+
+def get_cached_company(name: str, company_id: str = "", max_age_hours: int = COMPANY_CACHE_TTL_HOURS) -> Optional[dict]:
+    """读缓存, 过期返回 None. 默认 24h 内复用."""
+    db = get_db()
+    if company_id:
+        row = db.execute(
+            """SELECT * FROM companies
+               WHERE company_id=? AND fetched_at > datetime('now', ? || ' hours')
+               ORDER BY fetched_at DESC LIMIT 1""",
+            (company_id, f"-{max_age_hours}"),
+        ).fetchone()
+        if row:
+            return _company_cache_row_to_dict(row)
+    if name:
+        row = db.execute(
+            """SELECT * FROM companies
+               WHERE name=? COLLATE NOCASE AND fetched_at > datetime('now', ? || ' hours')
+               ORDER BY fetched_at DESC LIMIT 1""",
+            (name, f"-{max_age_hours}"),
+        ).fetchone()
+        if row:
+            return _company_cache_row_to_dict(row)
+    return None
+
+
+def save_company_cache(
+    name: str, company_id: str = "", industry: str = "", scale: str = "",
+    stage: str = "", employee_count: str = "", founded: str = "",
+    open_positions: Optional[List[str]] = None, description: str = "",
+    source_url: str = "",
+) -> int:
+    """写入/刷新公司信息缓存. ON CONFLICT 走 UPSERT 路径, 自动刷新 fetched_at."""
+    db = get_db()
+    positions_json = json.dumps(open_positions or [], ensure_ascii=False)
+    cur = db.execute(
+        """INSERT INTO companies
+           (name, company_id, industry, scale, stage, employee_count, founded,
+            open_positions, description, source_url, fetched_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+           ON CONFLICT(name COLLATE NOCASE, company_id) DO UPDATE SET
+             industry=excluded.industry,
+             scale=excluded.scale,
+             stage=excluded.stage,
+             employee_count=excluded.employee_count,
+             founded=excluded.founded,
+             open_positions=excluded.open_positions,
+             description=excluded.description,
+             source_url=excluded.source_url,
+             fetched_at=CURRENT_TIMESTAMP""",
+        (name, company_id or "", industry, scale, stage, employee_count, founded,
+         positions_json, description, source_url),
+    )
+    db.commit()
+    return cur.lastrowid
+
+
+def list_companies_for_cleanup(older_than_hours: int = 168) -> int:
+    """清 N 小时前的过期缓存, 返回清理条数. 默认清 7 天前."""
+    db = get_db()
+    cur = db.execute(
+        "DELETE FROM companies WHERE fetched_at < datetime('now', ? || ' hours')",
+        (f"-{older_than_hours}",),
+    )
+    db.commit()
+    return cur.rowcount
+
+
+# ══════════════════════════════════════
 #  Applications
 # ══════════════════════════════════════
 
 
 def add_application(job: dict) -> int:
     db = get_db()
+    hr_active_days = job.get("hr_active_days")
+    if hr_active_days is None or hr_active_days == "":
+        hr_active_days = -1
     cur = db.execute(
         """INSERT OR IGNORE INTO applications
-           (job_title, company, salary, job_url, city, experience, education, hr_name, hr_title, description)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           (job_title, company, salary, job_url, city, experience, education,
+            hr_name, hr_title, description,
+            company_id, brand_name, hr_active_label, hr_active_days)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             job.get("title", ""),
             job.get("company", ""),
@@ -181,6 +420,10 @@ def add_application(job: dict) -> int:
             job.get("hr_name", ""),
             job.get("hr_title", ""),
             job.get("description", ""),
+            job.get("company_id", ""),
+            job.get("brand_name", ""),
+            job.get("hr_active_label", ""),
+            hr_active_days,
         ),
     )
     db.commit()
