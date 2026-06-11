@@ -6,6 +6,7 @@ SQLite 数据层 —— 投递记录、聊天消息、设置、每日统计。
 import sqlite3
 import threading
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -206,7 +207,7 @@ def _rows_to_list(rows) -> List[dict]:
 
 _COMPANY_SUFFIXES = (
     "有限公司", "有限责任公司", "股份有限公司", "集团", "集团有限",
-    "(中国)", "（中国）", "股份", "科技", "技术", "信息",
+    "(中国)", "（中国）", "股份",
 )
 
 
@@ -391,6 +392,45 @@ def list_companies_for_cleanup(older_than_hours: int = 168) -> int:
     )
     db.commit()
     return cur.rowcount
+
+
+# ══════════════════════════════════════
+#  公司在招岗位清理 (辅助 _scrape_company_page 过滤脏数据)
+# ══════════════════════════════════════
+
+_NOISE_POSITIONS = {
+    "更多", "查看更多", "全部", "收起", "展开", "加载更多",
+    "职位搜索", "搜索", "热门", "推荐",
+}
+
+_SALARY_PAT = re.compile(r"(\d+\s*[-~到至]?\s*\d*\s*[Kk万])|(\d+\s*元/?月)")
+
+
+def clean_open_positions(raw):
+    """清洗 BOSS 公司详情页'在招岗位'字段, 过滤薪资文案和 UI 噪音.
+
+    Returns:
+        (cleaned_str, count)
+
+    Examples:
+        >>> clean_open_positions("5-7K、5-10K、3-5K、职位搜索、AI Agent开发工程师、电商运营、更多")
+        ('AI Agent开发工程师、电商运营', 2)
+    """
+    if not raw:
+        return ("", 0)
+    parts = [p.strip() for p in re.split(r"、|,|;|/|\n", raw) if p and p.strip()]
+    valid = []
+    for p in parts:
+        if p in _NOISE_POSITIONS:
+            continue
+        if _SALARY_PAT.search(p):
+            continue
+        if len(p) < 2 or len(p) > 40:
+            continue
+        if not re.search(r"[\u4e00-\u9fffA-Za-z]", p):
+            continue
+        valid.append(p)
+    return ("、".join(valid), len(valid))
 
 
 # ══════════════════════════════════════
