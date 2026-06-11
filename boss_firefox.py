@@ -671,7 +671,7 @@ class BossScraper:
         self,
         keyword,
         city_code="100010000",
-        job_type: str = "",       # "1"=全职, "2"=兼职, "3"=实习, 或 "full"/"part"/"practice" 兼容, ''=不限
+        job_type: str = "",       # "1"=全职, "2"=兼职, 或 "1901"/"1903" 直传; ''=不限
         salary: str = "",         # BOSS 薪资 code 直传, 如 "405"=10-20K
         salary_min: Optional[int] = None,  # K 单位 (旧接口兼容)
         salary_max: Optional[int] = None,
@@ -685,7 +685,7 @@ class BossScraper:
         BOSS 直聘搜索 URL 参数 (经多个 GitHub 爬虫项目验证):
         - query=     搜索关键词
         - city=      城市 code
-        - jobType=   岗位类型 (1=全职, 2=兼职, 3=实习, 注意: BOSS URL 用数字, 不是 full/part)
+        - jobType=   岗位类型 (1901=全职, 1903=兼职, 注意: 是4位code, 不是1/2/3)
         - salary=    薪资 (BOSS code: 402=3K以下, 403=3-5K, 404=5-10K, 405=10-20K, 406=20-50K, 407=50K以上)
         - degree=    学历 (202=大专, 203=本科, 204=硕士, 205=博士, 206=高中, 208=中专, 209=初中及以下)
         - experience= 经验 (102=应届, 103=1年内, 104=1-3年, 105=3-5年, 106=5-10年, 107=10年以上, 108=在校)
@@ -708,13 +708,14 @@ class BossScraper:
             "query": keyword,
             "city": city_code,
         }
-        # jobType: BOSS URL 只认 jobType 参数 (数字 code: 1=全职, 2=兼职, 3=实习)
-        # positionType 参数不存在于 BOSS 实际 URL 中, 之前传了是错的
+        # jobType: BOSS URL 用 4 位 code (1901=全职, 1903=兼职)
+        # 注意: 不是 "1"/"2"/"3", 也不是 "full"/"part"/"practice"
+        # 证据: CareerAI/Job-Hunting-Agent/OpenLOA 等多个 GitHub 项目 + 用户验证
         if job_type:
-            # 兼容两种格式: 数字 "1"/"2"/"3" 或字符串 "full"/"part"/"practice"
-            _type_num_map = {"full": "1", "part": "2", "practice": "3",
-                             "1": "1", "2": "2", "3": "3"}
-            params["jobType"] = _type_num_map.get(job_type, job_type)
+            _type_code_map = {"full": "1901", "part": "1903",
+                              "1": "1901", "2": "1903",
+                              "1901": "1901", "1903": "1903"}
+            params["jobType"] = _type_code_map.get(job_type, job_type)
         if salary:
             params["salary"] = salary
         if experience is not None:
