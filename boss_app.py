@@ -294,6 +294,22 @@ def _title_hit_blacklist(title: str, description: str, blacklist) -> bool:
     return False
 
 
+def _save_filtered_job(job: dict):
+    """将被关键词过滤的岗位以 status='filtered' 入库，方便用户在投递记录页查看。"""
+    url = job.get("url", "")
+    if not url:
+        return
+    existing = get_application_by_url(url)
+    if existing:
+        # 已存在则不重复入库，但确保状态为 filtered
+        if existing.get("status") != "filtered":
+            update_application_status(existing["id"], "filtered")
+        return
+    aid = add_application(job)
+    if aid:
+        update_application_status(aid, "filtered")
+
+
 def _load_title_blacklist() -> tuple:
     """读 settings.title_filter_keywords (逗号分隔), 合并默认黑名单.
 
@@ -813,7 +829,7 @@ async def search_jobs(req: SearchRequest):
             skipped_inactive = 0
 
         # BUG-028 修复: 入库前 title 关键词黑名单 + 名称乱码兜底
-        # 真实场景: 搜 'AI Agent' 也会出 'AI 训练师' / '宣传员' 这种, 必须前端过滤
+        # 命中黑名单的岗位以 status='filtered' 入库，可在投递记录页查看
         blacklist = _load_title_blacklist()
         filtered2 = []
         skipped_keyword = 0
@@ -822,9 +838,14 @@ async def search_jobs(req: SearchRequest):
             t = j.get("title", "") or ""
             if _is_garbled_text(t):
                 skipped_garbled += 1
+                # 乱码岗位不入库，直接丢弃
                 continue
             if _title_hit_blacklist(t, j.get("description", ""), blacklist):
                 skipped_keyword += 1
+                # 关键词命中 → 入库为 filtered，方便用户查看
+                j["url"] = _normalize_job_url(j.get("url", ""))
+                if j.get("url"):
+                    _save_filtered_job(j)
                 continue
             filtered2.append(j)
         jobs = filtered2

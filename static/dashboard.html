@@ -1840,7 +1840,7 @@ function doSearch(){
     toast('找到 '+d.jobs_found+' 条岗位'+(filteredTotal?'，过滤 '+filteredTotal+' 条':''),'success');
   }).catch(err=>{searchInFlight=false;document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">失败: '+esc(err.message)+'</div>';toast('搜索失败: '+err.message,'error');});
 }
-function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{currentSearchJobs=[];renderJobs(d.jobs||[]);});}
+function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{currentSearchJobs=[];renderJobs((d.jobs||[]).filter(j=>j.status!=='filtered'));});}
 
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
