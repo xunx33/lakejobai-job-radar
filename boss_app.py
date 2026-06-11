@@ -15,7 +15,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, List
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote_plus
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -254,20 +254,43 @@ class SearchRequest(BaseModel):
     city: str = ""
     welfare: Optional[str] = None
     limit: int = 60
+    # CHANGES §3 §4 + BUG-026/027 修复: 前端发了但后端没接的 5 个字段
+    job_type: Optional[str] = None          # full/part/practice/''
+    salary_min: Optional[int] = None        # K
+    salary_max: Optional[int] = None        # K
+    experience: Optional[int] = None        # 101-106
+    edu: Optional[int] = None               # 201-205
+    scale: Optional[int] = None             # 301-306
+    stage: Optional[int] = None             # 401-406
+    # 入库前过滤: dedup_company / filter_inactive_hr 在搜索阶段就过滤掉低质岗位
+    dedup_company: Optional[bool] = None
+    filter_inactive_hr: Optional[bool] = None
+    max_hr_inactive_days: Optional[int] = None
 
 
 class ApplyRequest(BaseModel):
     job_url: str
     greeting: Optional[str] = None
+    company_name: Optional[str] = None
+    company_id: Optional[str] = None
+    dedup_company: Optional[bool] = None
+    hr_active_days: Optional[int] = None
+    hr_active_label: Optional[str] = None
+    filter_inactive_hr: Optional[bool] = None
 
 
 class ApplyBatchRequest(BaseModel):
     job_urls: List[str]
     greeting: Optional[str] = None
+    jobs: Optional[List[dict]] = None  # [{url, company, company_id, hr_active_days, ...}]
 
 
 class ScanAndApplyRequest(BaseModel):
     greeting: Optional[str] = None
+    max_pages: Optional[int] = 5
+    dedup_company: Optional[bool] = True
+    filter_inactive_hr: Optional[bool] = True
+    max_hr_inactive_days: Optional[int] = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -275,6 +298,8 @@ class AnalyzeRequest(BaseModel):
     job_title: Optional[str] = ""
     company: Optional[str] = ""
     description: Optional[str] = ""
+    company_id: Optional[str] = None
+    with_company_info: Optional[bool] = False
 
 
 class SendMessageRequest(BaseModel):
@@ -646,7 +671,18 @@ async def search_jobs(req: SearchRequest):
     try:
         city_code = CITY_MAP.get(req.city or get_setting("default_city", "全国"), "100010000")
         try:
-            jobs = await _run_pw(automation.search, req.keyword, city_code)
+            # BUG-026/027 修复: 把 7 个新字段透传给 BOSS URL
+            jobs = await _run_pw(
+                automation.search,
+                req.keyword, city_code,
+                job_type=req.job_type or "",
+                salary_min=req.salary_min,
+                salary_max=req.salary_max,
+                experience=req.experience,
+                edu=req.edu,
+                scale=req.scale,
+                stage=req.stage,
+            )
         except HTTPException:
             raise
         except Exception as e:
@@ -656,6 +692,37 @@ async def search_jobs(req: SearchRequest):
         if req.welfare:
             welfare_kw = [w.strip() for w in req.welfare.split(",") if w.strip()]
             jobs = automation._filter_by_welfare(jobs, welfare_kw)
+
+        # BUG-027 修复: 在入库前, 用去重 + HR 活跃度过滤低质岗位
+        dedup = req.dedup_company if req.dedup_company is not None else (
+            get_setting("dedup_company_by_default", "true") == "true"
+        )
+        filter_inactive = req.filter_inactive_hr if req.filter_inactive_hr is not None else (
+            get_setting("filter_inactive_hr", "true") == "true"
+        )
+        max_inactive = req.max_hr_inactive_days or int(get_setting("max_hr_inactive_days", "7"))
+
+        if dedup or filter_inactive:
+            from boss_state import has_company_been_applied
+            filtered = []
+            skipped_company = 0
+            skipped_inactive = 0
+            for j in jobs:
+                if dedup and (j.get("company") or j.get("company_id")):
+                    chk = has_company_been_applied(j.get("company", ""), j.get("company_id", ""))
+                    if chk["applied"]:
+                        skipped_company += 1
+                        continue
+                if filter_inactive:
+                    days = j.get("hr_active_days", -1)
+                    if isinstance(days, int) and days >= 0 and days > max_inactive:
+                        skipped_inactive += 1
+                        continue
+                filtered.append(j)
+            jobs = filtered
+        else:
+            skipped_company = 0
+            skipped_inactive = 0
 
         saved_ids = []
         result_jobs = []
@@ -685,7 +752,13 @@ async def search_jobs(req: SearchRequest):
                 "found": len(jobs),
             }
         )
-        return {"jobs_found": len(jobs), "saved": len(saved_ids), "jobs": result_jobs}
+        return {
+            "jobs_found": len(jobs),
+            "saved": len(saved_ids),
+            "skipped_company": skipped_company,
+            "skipped_inactive_hr": skipped_inactive,
+            "jobs": result_jobs,
+        }
     finally:
         monitor_paused = was_paused
 
@@ -809,7 +882,12 @@ async def scan_current_page():
 
 @app.post("/api/jobs/scan-and-apply")
 async def scan_and_apply(req: ScanAndApplyRequest = ScanAndApplyRequest()):
-    """扫描当前页面全部岗位 → 一键批量投递。"""
+    """扫描当前页面 N 页全部岗位 → 一键批量投递 (BUG-005 修复).
+
+    - max_pages: 最多翻几页 (含当前页), 默认 5
+    - dedup_company: 跳过已发公司
+    - filter_inactive_hr: 跳过 HR 长时间不活跃
+    """
     if not automation:
         raise HTTPException(status_code=503, detail="浏览器未启动")
 
@@ -817,12 +895,22 @@ async def scan_and_apply(req: ScanAndApplyRequest = ScanAndApplyRequest()):
     if get_today_application_count() >= daily_limit:
         raise HTTPException(status_code=429, detail="已达到今日投递上限")
 
-    result = await _run_pw(automation.scan_and_apply_current_page, req.greeting)
+    max_pages = max(1, min(int(req.max_pages or 5), 20))  # 1-20 页封顶
+    result = await _run_pw(
+        automation.scan_and_apply_all_pages,
+        max_pages=max_pages,
+        greeting=req.greeting,
+        dedup_company=req.dedup_company if req.dedup_company is not None else True,
+        filter_inactive_hr=req.filter_inactive_hr if req.filter_inactive_hr is not None else True,
+    )
     await broadcast_ws(
         {
             "type": "scan_apply_complete",
-            "scanned": result.get("scanned", 0),
-            "applied": result.get("applied", 0),
+            "scanned": result.get("total_scanned", 0),
+            "applied": result.get("total_applied", 0),
+            "pages_processed": result.get("pages_processed", 0),
+            "skipped_company": result.get("total_skipped_company", 0),
+            "skipped_inactive_hr": result.get("total_skipped_inactive_hr", 0),
         }
     )
     return result
@@ -1117,6 +1205,161 @@ async def update_settings(req: SettingsUpdate):
             updates[k] = str(v)
     await broadcast_ws({"type": "settings_updated", "updates": updates})
     return {"status": "ok", "updated": updates}
+
+
+# ══════════════════════════════════════
+#  公司信息 (CHANGES §3 / BUG-006 修复)
+# ══════════════════════════════════════
+
+class CompanyInfoRequest(BaseModel):
+    company: str
+    company_id: Optional[str] = None
+    use_cache: bool = True
+    max_age_hours: int = 24
+    no_cache: bool = False  # 强制刷新
+
+
+class CompanyCheckRequest(BaseModel):
+    company: str
+    company_id: Optional[str] = None
+
+
+@app.post("/api/company/info")
+async def fetch_company_info(req: CompanyInfoRequest):
+    """抓取公司信息. 优先读 24h 缓存, 缓存 miss 或强制刷新时调浏览器抓 BOSS /gongsi/<id>.html."""
+    from boss_state import get_cached_company, save_company_cache
+
+    if not req.company and not req.company_id:
+        raise HTTPException(status_code=400, detail="company 或 company_id 必填一项")
+
+    if not req.no_cache and req.use_cache:
+        cached = get_cached_company(req.company, req.company_id, req.max_age_hours)
+        if cached:
+            return {"source": "cache", "data": cached}
+
+    if not automation or automation.page is None:
+        raise HTTPException(status_code=503, detail="浏览器未启动, 无法实时抓取")
+
+    # 实时抓取: 委托 boss_firefox._fetch_company_info (暂无, 走兜底 HTML 解析)
+    data = await _run_pw(_scrape_company_page, req.company, req.company_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="未找到该公司信息")
+
+    # 写缓存 (company_id 空时 upsert 走 name only, UNIQUE 约束会冲突, 改用 INSERT OR REPLACE)
+    try:
+        save_company_cache(
+            name=req.company or data.get("name", ""),
+            company_id=req.company_id or data.get("company_id", ""),
+            industry=data.get("industry", ""),
+            scale=data.get("scale", ""),
+            stage=data.get("stage", ""),
+            employee_count=data.get("employee_count", ""),
+            founded=data.get("founded", ""),
+            open_positions=data.get("open_positions", []),
+            description=data.get("description", ""),
+            source_url=data.get("source_url", ""),
+        )
+    except Exception as e:
+        print(f"  ⚠️ save_company_cache 失败: {e}")
+
+    return {"source": "live", "data": data}
+
+
+async def _scrape_company_page(company: str, company_id: str = ""):
+    """BOSS 公司详情页抓取, 简化版, 单页能拿的字段都拿."""
+    if not automation or automation.page is None:
+        return None
+    try:
+        from boss_firefox import BossScraper
+        scraper = BossAutomation.__mro__[1] if hasattr(BossAutomation, "__mro__") else BossScraper
+    except Exception:
+        scraper = None
+
+    if not company_id:
+        # 简化: 没 company_id 就走 BOSS 搜索, 拿第一条匹配公司的链接
+        try:
+            kw = company
+            url = f"https://www.zhipin.com/web/geek/job?query={quote_plus(kw)}"
+            automation.page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            pause(2, 3)
+            company_link = automation.page.locator('a[href*="/gongsi/"]').first
+            if company_link:
+                href = company_link.get_attribute("href") or ""
+                m = re.search(r"/gongsi/([a-zA-Z0-9_\-]+)\.html", href)
+                if m:
+                    company_id = m[1]
+                    # 进入公司详情页
+                    automation.page.goto(f"https://www.zhipin.com{href}", wait_until="domcontentloaded", timeout=20000)
+                    pause(2, 3)
+        except Exception as e:
+            print(f"  ⚠️ 找 company_id 失败: {e}")
+            return None
+    else:
+        try:
+            automation.page.goto(f"https://www.zhipin.com/gongsi/{company_id}.html", wait_until="domcontentloaded", timeout=20000)
+            pause(2, 3)
+        except Exception as e:
+            print(f"  ⚠️ 打开公司页失败: {e}")
+            return None
+
+    # 从 DOM 抓取
+    try:
+        info = automation.page.evaluate("""() => {
+            const body = document.body.innerText || '';
+            const lines = body.split('\\n').map(s => s.trim()).filter(Boolean);
+            const result = { industry: '', scale: '', stage: '', founded: '', employee_count: '', open_positions: [] };
+            // BOSS 公司详情页常见结构: "行业: 互联网" / "规模: 100-499人" / "融资: A轮"
+            for (const l of lines) {
+                if (/^行业[::]/.test(l) && !result.industry) result.industry = l.replace(/^行业[::]\\s*/, '');
+                if (/^(公司规模|规模)[::]/.test(l) && !result.scale) result.scale = l.replace(/^(公司规模|规模)[::]\\s*/, '');
+                if (/^融资[::]/.test(l) && !result.stage) result.stage = l.replace(/^融资[::]\\s*/, '');
+                if (/^成立[日期]*[::]/.test(l) && !result.founded) result.founded = l.replace(/^成立[日期]*[::]\\s*/, '');
+            }
+            // 在招岗位: li 里的岗位名
+            document.querySelectorAll('a[href*="/job_detail/"]').forEach(a => {
+                const t = (a.innerText || '').trim().split('\\n')[0];
+                if (t && t.length < 40 && !result.open_positions.includes(t)) {
+                    result.open_positions.push(t);
+                }
+            });
+            result.description = body.slice(0, 1000);
+            return result;
+        }""")
+        if not info:
+            return None
+        info["name"] = company
+        info["company_id"] = company_id
+        info["source_url"] = f"https://www.zhipin.com/gongsi/{company_id}.html" if company_id else ""
+        return info
+    except Exception as e:
+        print(f"  ⚠️ 抓取公司页 DOM 失败: {e}")
+        return None
+
+
+@app.get("/api/company/cache/{name}")
+async def company_cache_lookup(name: str, company_id: str = ""):
+    """只查缓存, 不抓 BOSS."""
+    from boss_state import get_cached_company
+    cached = get_cached_company(name, company_id)
+    if not cached:
+        raise HTTPException(status_code=404, detail="缓存不存在")
+    return {"data": cached}
+
+
+@app.post("/api/company/check-applied")
+async def check_company_applied(req: CompanyCheckRequest):
+    """检查某公司是否已投递过."""
+    from boss_state import has_company_been_applied
+    if not req.company and not req.company_id:
+        raise HTTPException(status_code=400, detail="company 或 company_id 必填一项")
+    return has_company_been_applied(req.company, req.company_id or "")
+
+
+@app.get("/api/companies/applied")
+async def companies_applied_list(limit: int = 200):
+    """列出所有已发过的公司."""
+    from boss_state import list_applied_companies
+    return {"companies": list_applied_companies(limit)}
 
 
 # ══════════════════════════════════════

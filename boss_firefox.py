@@ -25,7 +25,7 @@ from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 from typing import Optional, Dict, Any
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 from playwright.sync_api import sync_playwright
 
@@ -663,13 +663,67 @@ class BossScraper:
             time.sleep(0.5)
         return count
 
-    def search(self, keyword, city_code="100010000"):
-        """搜索关键词，返回岗位列表"""
+    def search(
+        self,
+        keyword,
+        city_code="100010000",
+        job_type: str = "",       # full=全职, part=兼职, practice=实习, ''=不限
+        salary_min: Optional[int] = None,  # K 单位
+        salary_max: Optional[int] = None,
+        experience: Optional[int] = None,  # 经验 code: 101/102/103/104/105/106
+        edu: Optional[int] = None,         # 学历 code: 201/202/203/204
+        scale: Optional[int] = None,      # 公司规模 code: 301/302/303/304/305
+        stage: Optional[int] = None,      # 融资阶段 code: 401/402/403/404/405/406
+    ):
+        """搜索关键词，返回岗位列表。
+
+        BOSS 直聘搜索 URL 参数 (CHANGES §3 §4 配套 + 修复前端筛选全不生效的 BUG-026/027):
+        - experience= 经验 (101=应届, 102=1年以内, 103=1-3年, 104=3-5年, 105=5-10年, 106=10年以上)
+        - edu=       学历 (201=高中, 202=大专, 203=本科, 204=硕士, 205=博士)
+        - scale=     公司规模 (301=0-20, 302=20-99, 303=100-499, 304=500-999, 305=1000-9999, 306=10000以上)
+        - stage=     融资阶段 (401=未融资, 402=天使轮, 403=A轮, 404=B轮, 405=C轮及以后, 406=已上市)
+        - jobType=   全职/兼职 (full=全职, part=兼职, practice=实习)
+        - salary=    薪资 (按 BOSS 内部 code, 403=3K以下, 404=3-5K, 405=5-10K, 406=10-20K, 407=20-50K, 408=50K以上)
+        """
         t0 = time.time()
-        url = "https://www.zhipin.com/web/geek/job?query=%s&city=%s" % (
-            quote_plus(keyword),
-            city_code,
-        )
+        # BOSS 内部薪资 code
+        salary_code_map = {3: "403", 5: "404", 10: "405", 20: "406", 50: "407"}
+        salary = ""
+        if salary_min is not None and salary_max is not None:
+            # 优先匹配两端的 code
+            for k, code in sorted(salary_code_map.items(), reverse=True):
+                if salary_min <= k:
+                    lo = code
+                    break
+            else:
+                lo = "403"
+            for k, code in sorted(salary_code_map.items()):
+                if salary_max >= k:
+                    hi = code
+                    break
+            else:
+                hi = "408"
+            # BOSS 薪资用单值 code 表示: 用下限 (lo) 即可, 上限靠排序
+            salary = lo
+
+        params = {
+            "query": quote_plus(keyword),
+            "city": city_code,
+        }
+        if job_type:
+            params["jobType"] = job_type
+        if salary:
+            params["salary"] = salary
+        if experience is not None:
+            params["experience"] = str(experience)
+        if edu is not None:
+            params["edu"] = str(edu)
+        if scale is not None:
+            params["scale"] = str(scale)
+        if stage is not None:
+            params["stage"] = str(stage)
+
+        url = "https://www.zhipin.com/web/geek/job?" + urlencode(params)
         self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
         loaded_count = self._wait_for_jobs_loaded(min_count=10, max_wait_s=15)
         t_wait = time.time() - t0
