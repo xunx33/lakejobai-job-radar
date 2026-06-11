@@ -710,8 +710,15 @@ class BossScraper:
             "query": quote_plus(keyword),
             "city": city_code,
         }
+        # BUG-028 修复: BOSS 改版后真实参数名不确定, 同时传多种格式以兼容
         if job_type:
-            params["jobType"] = job_type
+            # Web 端 SPA 内部常用 'positionType' (数字 1=全职, 2=兼职, 3=实习)
+            # 老 API/移动端用 'jobType' (full/part/practice)
+            # 我们传两种, BOSS 接受哪种就用哪种
+            type_map_legacy = {"full": "full", "part": "part", "practice": "practice"}
+            type_map_new = {"full": "1", "part": "2", "practice": "3"}
+            params["positionType"] = type_map_new.get(job_type, job_type)
+            params["jobType"] = type_map_legacy.get(job_type, job_type)
         if salary:
             params["salary"] = salary
         if experience is not None:

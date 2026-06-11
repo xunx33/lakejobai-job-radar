@@ -245,6 +245,89 @@ def _clean_messages_for_web(messages: List[dict]) -> List[dict]:
 
 
 # ══════════════════════════════════════
+#  入库前过滤 (BUG-028 修复: 标题黑名单 + 乱码兜底)
+# ══════════════════════════════════════
+
+# 默认标题黑名单: 即使 BOSS 模糊匹配, 这些岗位 Jeff 也不投
+# 来源: 截图里'宣传员/视频剪辑/PPT'这种 + 历史经验
+_DEFAULT_TITLE_BLACKLIST = (
+    "宣传员", "宣传片", "宣传策划", "宣传",  # ← 单独加"宣传"覆盖"垃圾分类宣传回收专员"这种
+    "PPT", "视频剪辑", "短视频剪辑", "剪辑", "拍摄", "拍摄助理", "文案策划", "广告策划",
+    "保洁", "家政", "保姆", "钟点工", "洗碗", "服务员", "传菜", "收银",
+    "地推", "扫楼", "扫街", "发传单", "派送", "快递分拣",
+    "工厂", "流水线", "车间", "普工", "操作工", "包装工",
+    "客服", "电话销售", "电销", "网销", "销售助理", "销售代表",
+    "陪玩", "游戏陪玩", "代练", "代打",
+    "司机", "外卖员", "骑手", "快递员", "网约车",
+    "群演", "群众演员", "模特", "礼仪", "迎宾", "前台", "助理",
+    "实习生", "兼职", "临时工", "短期", "日结", "周结",
+    "保安", "门卫", "监控", "巡查", "物业",
+    "铲屎", "宠物美容", "宠物店",
+    "会计", "出纳",  # 跟 Jeff 求职目标(技术/产品)不符
+    "教师", "幼教", "培训讲师",  # 跟 Jeff 求职目标不符
+    "采购", "仓库", "物流", "快递", "调度",
+    "婚庆", "司仪", "化妆师", "美容师", "美甲师",
+    "健身教练", "瑜伽教练", "舞蹈老师", "钢琴老师",
+    "技术员", "维修", "电工", "焊工", "木工", "瓦工", "油漆工",
+    "护士", "医生", "药店", "医疗器械",
+    "置业顾问", "房产销售", "房产经纪人",
+    "审计", "税务", "风控",  # Jeff 求职目标不符
+    "印刷", "装订", "排版",
+    "游戏推广", "推广员", "拉新", "网推", "线上推广",
+    "运营助理",  # 太初级, Jeff 不需要
+    "UI设计", "平面设计", "美工",  # Jeff 求职是 AI/产品, 不是设计
+    "测试工程师", "QA",  # Jeff 没说要 QA 岗
+    "行政", "文员", "助理",  # 太初级
+)
+
+# 名称乱码模式: BOSS 详情页偶尔有 ? 占位符 / 全角字符 / 不可识别字符
+_GARBLE_RE = __import__("re").compile(r"\?{3,}|[\uFFFD]{2,}")
+
+
+def _is_garbled_text(text: str) -> bool:
+    """检查文本是否含乱码/占位符.
+
+    Examples:
+        >>> _is_garbled_text("垃圾分类宣传回收专员")
+        False
+        >>> _is_garbled_text("??")
+        False
+        >>> _is_garbled_text("???垃圾")
+        True
+        >>> _is_garbled_text("AI ??? 工程师")
+        True
+    """
+    if not text:
+        return False
+    # 多个连续 '?' 或 '?' 出现在中文中
+    return bool(_GARBLE_RE.search(text))
+
+
+def _title_hit_blacklist(title: str, description: str, blacklist) -> bool:
+    """检查岗位 title 或 description 是否命中黑名单关键词.
+
+    只检查 title 即可, 不查 description (description 太长会误杀).
+    """
+    if not title:
+        return False
+    t = title.lower()
+    for kw in blacklist:
+        if kw and kw.lower() in t:
+            return True
+    return False
+
+
+def _load_title_blacklist() -> tuple:
+    """读 settings.title_filter_keywords (逗号分隔), 合并默认黑名单.
+
+    用户的自定义黑名单**追加**在默认之后, 不覆盖. 这样默认安全网一直生效.
+    """
+    custom = (get_setting("title_filter_keywords", "") or "").strip()
+    custom_kws = tuple(k.strip() for k in custom.split(",") if k.strip())
+    return _DEFAULT_TITLE_BLACKLIST + custom_kws
+
+
+# ══════════════════════════════════════
 #  Pydantic Models
 # ══════════════════════════════════════
 
@@ -724,6 +807,23 @@ async def search_jobs(req: SearchRequest):
             skipped_company = 0
             skipped_inactive = 0
 
+        # BUG-028 修复: 入库前 title 关键词黑名单 + 名称乱码兜底
+        # 真实场景: 搜 'AI Agent' 也会出 'AI 训练师' / '宣传员' 这种, 必须前端过滤
+        blacklist = _load_title_blacklist()
+        filtered2 = []
+        skipped_keyword = 0
+        skipped_garbled = 0
+        for j in jobs:
+            t = j.get("title", "") or ""
+            if _is_garbled_text(t):
+                skipped_garbled += 1
+                continue
+            if _title_hit_blacklist(t, j.get("description", ""), blacklist):
+                skipped_keyword += 1
+                continue
+            filtered2.append(j)
+        jobs = filtered2
+
         saved_ids = []
         result_jobs = []
         for j in jobs:
@@ -757,6 +857,8 @@ async def search_jobs(req: SearchRequest):
             "saved": len(saved_ids),
             "skipped_company": skipped_company,
             "skipped_inactive_hr": skipped_inactive,
+            "skipped_keyword": skipped_keyword,
+            "skipped_garbled": skipped_garbled,
             "jobs": result_jobs,
         }
     finally:
