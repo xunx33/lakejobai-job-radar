@@ -1813,9 +1813,25 @@ function doSearch(){
     if(d.detail){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">'+esc(d.detail)+'</div>';toast(d.detail,'error');return;}
     if(d.jobs_found===undefined||d.jobs_found===null){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">搜索失败</div>';toast('搜索失败','error');return;}
     currentSearchJobs=Array.isArray(d.jobs)?d.jobs:[];
-    document.getElementById('searchStatus').innerHTML='<div class="status-banner success" style="margin-top:8px;">找到 '+d.jobs_found+' 条，已保存 '+d.saved+' 条</div>';
+    // 构建搜索结果摘要：含过滤统计
+    let summary='找到 '+d.jobs_found+' 条，已保存 '+d.saved+' 条';
+    let filteredTotal=(d.skipped_keyword||0)+(d.skipped_garbled||0)+(d.skipped_company||0)+(d.skipped_inactive_hr||0);
+    if(filteredTotal>0){
+      let parts=[];
+      if(d.skipped_keyword)parts.push('关键词过滤 '+d.skipped_keyword);
+      if(d.skipped_garbled)parts.push('乱码过滤 '+d.skipped_garbled);
+      if(d.skipped_company)parts.push('公司去重 '+d.skipped_company);
+      if(d.skipped_inactive_hr)parts.push('HR不活跃 '+d.skipped_inactive_hr);
+      summary+='，已过滤 '+filteredTotal+' 条（'+parts.join('、')+'）';
+    }
+    document.getElementById('searchStatus').innerHTML='<div class="status-banner success" style="margin-top:8px;">'+summary+'</div>';
+    // 更新漏斗「已过滤」数字
+    let funnelEl=document.getElementById('funnelFiltered');
+    if(funnelEl){let prev=parseInt(funnelEl.textContent||'0',10)||0;funnelEl.textContent=prev+filteredTotal;}
+    let statFilteredEl=document.getElementById('statFiltered');
+    if(statFilteredEl){let prev=parseInt(statFilteredEl.textContent||'0',10)||0;animateNumber(statFilteredEl,prev+filteredTotal);}
     currentSearchJobs.length?renderJobs(currentSearchJobs):loadJobs();
-    toast('找到 '+d.jobs_found+' 条岗位','success');
+    toast('找到 '+d.jobs_found+' 条岗位'+(filteredTotal?'，过滤 '+filteredTotal+' 条':''),'success');
   }).catch(err=>{searchInFlight=false;document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">失败: '+esc(err.message)+'</div>';toast('搜索失败: '+err.message,'error');});
 }
 function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{currentSearchJobs=[];renderJobs(d.jobs||[]);});}
