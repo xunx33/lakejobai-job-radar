@@ -34,6 +34,10 @@ from boss_state import (
     get_today_auto_reply_count,
     find_conversation_by_hr_name,
     get_daily_stats,
+    has_company_been_applied,
+    list_applied_companies,
+    save_company_cache,
+    get_cached_company,
 )
 
 # ── 选择器配置（BOSS UI 改版时只改这里，也可通过设置表覆盖）──
@@ -300,13 +304,25 @@ class BossAutomation(BossScraper):
     #  自动投递
     # ══════════════════════════════════════
 
-    def apply_to_job(self, job_url: str, greeting: Optional[str] = None) -> dict:
+    def apply_to_job(
+        self,
+        job_url: str,
+        greeting: Optional[str] = None,
+        company_name: str = "",
+        company_id: str = "",
+        dedup_company: Optional[bool] = None,
+        hr_active_days: Optional[int] = None,
+        hr_active_label: str = "",
+        filter_inactive_hr: Optional[bool] = None,
+    ) -> dict:
         """
         对单个岗位执行投递流程:
-        1. 打开详情页
-        2. 点击"立即沟通"
-        3. 发送招呼语
-        返回 {success, message, application_id}
+        1. 公司去重 (如果 dedup_company=True 且 has_company_been_applied 命中 → 跳过)
+        2. HR 活跃度过滤 (如果 filter_inactive_hr=True 且 hr_active_days > max_hr_inactive_days → 跳过)
+        3. 打开详情页
+        4. 点击"立即沟通"
+        5. 发送招呼语
+        返回 {success, message, application_id, skipped?, matched?, skipped_inactive_hr?}
         """
         if not job_url:
             return {"success": False, "message": "缺少岗位链接"}
@@ -316,6 +332,39 @@ class BossAutomation(BossScraper):
         daily_limit = int(get_setting("daily_apply_limit", "15"))
         if today_count >= min(daily_limit, MAX_APPLY_PER_DAY):
             return {"success": False, "message": f"已达今日上限({today_count}条)"}
+
+        # 默认值: dedup_company / filter_inactive_hr 走 settings
+        if dedup_company is None:
+            dedup_company = get_setting("dedup_company_by_default", "true") == "true"
+        if filter_inactive_hr is None:
+            filter_inactive_hr = get_setting("filter_inactive_hr", "true") == "true"
+        max_inactive = int(get_setting("max_hr_inactive_days", "7"))
+
+        # ── 1. 公司去重 ──
+        if dedup_company and (company_name or company_id):
+            check = has_company_been_applied(company_name, company_id)
+            if check["applied"]:
+                matched = check.get("matched_name") or company_name or company_id
+                print(f"  ⏭ 公司已发过: {matched} (命中 {check['count']} 条)")
+                return {
+                    "success": True,
+                    "skipped": "company_dedup",
+                    "matched": matched,
+                    "count": check["count"],
+                    "message": f"公司 {matched} 已发过 {check['count']} 次, 跳过",
+                }
+
+        # ── 2. HR 活跃度过滤 (hr_active_days=-1 表示未知, 不挡) ──
+        if filter_inactive_hr and hr_active_days is not None and hr_active_days >= 0:
+            if hr_active_days > max_inactive:
+                print(f"  ⏭ HR {hr_active_days} 天未活跃 (>{max_inactive}天), 跳过")
+                return {
+                    "success": True,
+                    "skipped": "inactive_hr",
+                    "hr_active_days": hr_active_days,
+                    "hr_active_label": hr_active_label,
+                    "message": f"HR {hr_active_days} 天未活跃, 跳过",
+                }
 
         # 岗位名称关键词过滤：命中 → 不投递（不消耗日限，不入库）
         # 临时回退：add_application 不接受 status 参数导致投递失败，先简单 skip
@@ -453,43 +502,190 @@ class BossAutomation(BossScraper):
             print(f"  ❌ 投递失败: {e}")
             return {"success": False, "message": str(e)}
 
-    def apply_batch(self, job_urls: List[str], greeting_template: Optional[str] = None) -> List[dict]:
+    def apply_batch(
+        self,
+        job_urls: Optional[List[str]] = None,
+        greeting_template: Optional[str] = None,
+        jobs: Optional[List[dict]] = None,
+    ) -> List[dict]:
         """批量投递，带间隔延迟。可通过设置 batch_delay_sec 控制间隔。
 
-        智能模式下：只对第一条调 LLM 生成招呼语，后续复用同一句，
-        避免每个岗位都等 2-8s 的 LLM 响应。
+        支持两种入参:
+        - apply_batch(job_urls=[...])      旧 API, 仅传 URL 列表 (向后兼容)
+        - apply_batch(jobs=[{url, company, company_id, hr_active_days, hr_active_label}, ...])
+                                            新 API, 带去重/HR 过滤所需字段
+
+        智能模式下: 只对第一条调 LLM 生成招呼语, 后续复用同一句,
+        避免每个岗位都等 2-8s 的 LLM 响应.
         """
         from boss_replier import generate_greeting
 
-        if not greeting_template and job_urls:
-            # 批量第一条：决定后续所有岗位的招呼语
-            job = get_application_by_url(job_urls[0])
-            title = job["job_title"] if job else "相关岗位"
-            company = job["company"] if job else "贵公司"
-            jd_text = job["description"] if job and job.get("description") else ""
+        # 兼容旧 API
+        if jobs is None and job_urls is not None:
+            jobs = [{"url": u} for u in job_urls]
+        elif jobs is None:
+            return []
+
+        # 抓去重/HR 过滤设置 (旧 API 走默认 true, 走 settings)
+        dedup_company = get_setting("dedup_company_by_default", "true") == "true"
+        filter_inactive_hr = get_setting("filter_inactive_hr", "true") == "true"
+
+        if not greeting_template and jobs:
+            first = jobs[0]
+            url = first.get("url", "")
+            job = get_application_by_url(url) if url else None
+            title = (job["job_title"] if job else first.get("title", "相关岗位")) or "相关岗位"
+            company = (job["company"] if job else first.get("company", "贵公司")) or "贵公司"
+            jd_text = (job["description"] if job and job.get("description") else first.get("description", "")) or ""
             style = get_setting("ai_reply_style", "professional")
             smart = get_setting("greeting_mode", "template") == "smart"
             greeting_template = generate_greeting(
                 title, company, style=style, jd_text=jd_text, smart=smart
             )
             if smart:
-                print(f"  🤖 批量智能招呼语已生成 ({len(greeting_template)}字)，后续 {len(job_urls)-1} 条复用")
+                print(f"  🤖 批量智能招呼语已生成 ({len(greeting_template)}字)，后续 {len(jobs)-1} 条复用")
 
         results = []
         min_delay = int(get_setting("batch_delay_min_sec", "30"))
         max_delay = int(get_setting("batch_delay_max_sec", "90"))
-        for i, url in enumerate(job_urls):
+        for i, j in enumerate(jobs):
             if i > 0:
                 delay = random.uniform(min_delay, max_delay)
                 print(f"  ⏳ 等待 {delay:.0f}s 后投递下一条...")
                 time.sleep(delay)
 
-            result = self.apply_to_job(url, greeting_template)
+            url = j.get("url", "")
+            result = self.apply_to_job(
+                url,
+                greeting_template,
+                company_name=j.get("company", ""),
+                company_id=j.get("company_id", ""),
+                dedup_company=dedup_company,
+                hr_active_days=j.get("hr_active_days"),
+                hr_active_label=j.get("hr_active_label", ""),
+                filter_inactive_hr=filter_inactive_hr,
+            )
+            result["_input"] = {k: j.get(k) for k in ("title", "company", "url") if j.get(k)}
             results.append(result)
 
             if not result["success"] and "上限" in result.get("message", ""):
                 break
         return results
+
+    # ══════════════════════════════════════
+    #  翻页扫描 (CHANGES §2)
+    # ══════════════════════════════════════
+
+    def go_to_next_page(self) -> bool:
+        """点 BOSS「下一页」按钮, 失败兜底改 URL ?page=N+1.
+
+        必须在 BOSS 搜索列表页 (`/web/geek/job?...`) 上调用.
+        Returns: True 表示已成功翻到下一页, False 表示已是最后一页.
+        """
+        import urllib.parse
+
+        # 1. 优先点击「下一页」按钮
+        next_selectors = [
+            'a[ka="page-next"]',
+            'a.next',
+            '.page .next',
+            'a:has-text("下一页")',
+            '.pager a:last-child',
+        ]
+        for sel in next_selectors:
+            try:
+                el = self.page.locator(sel).first
+                if el and el.is_visible(timeout=2000):
+                    href = el.get_attribute("href") or ""
+                    disabled = el.get_attribute("class") or ""
+                    if "disabled" in disabled.lower():
+                        return False
+                    el.click()
+                    pause(2, 3)
+                    return True
+            except Exception:
+                continue
+
+        # 2. 兜底: 修改 URL 的 page/page=N 参数
+        try:
+            url = self.page.url
+            parsed = urllib.parse.urlparse(url)
+            qs = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+            current = int((qs.get("page") or ["1"])[0])
+            qs["page"] = [str(current + 1)]
+            new_q = urllib.parse.urlencode({k: v[0] for k, v in qs.items()})
+            new_url = urllib.parse.urlunparse(parsed._replace(query=new_q))
+            self.page.goto(new_url, wait_until="domcontentloaded", timeout=20000)
+            pause(2, 3)
+            return True
+        except Exception as e:
+            print(f"  ⚠️ 翻页失败: {e}")
+            return False
+
+    def scan_and_apply_all_pages(
+        self,
+        max_pages: int = 5,
+        greeting: Optional[str] = None,
+        dedup_company: bool = True,
+        filter_inactive_hr: bool = True,
+    ) -> dict:
+        """翻 N 页扫描 + 投递. 返回 {pages_processed, total_scanned, total_applied, total_failed, total_skipped_company, total_skipped_inactive_hr}.
+
+        - max_pages: 最多翻几页 (含当前页), 默认 5
+        - dedup_company: 跳过已发公司
+        - filter_inactive_hr: 跳过 HR 长时间不活跃
+        """
+        result = {
+            "pages_processed": 0,
+            "total_scanned": 0,
+            "total_applied": 0,
+            "total_failed": 0,
+            "total_skipped_company": 0,
+            "total_skipped_inactive_hr": 0,
+            "total_filtered_keyword": 0,
+        }
+
+        for page_idx in range(max_pages):
+            cards = self.scan_current_page()
+            result["pages_processed"] += 1
+            result["total_scanned"] += len(cards)
+            print(f"  📄 第 {page_idx+1}/{max_pages} 页: {len(cards)} 条岗位")
+
+            if not cards:
+                print(f"  ⚠️ 第 {page_idx+1} 页无岗位, 提前结束")
+                break
+
+            for j in cards:
+                r = self.apply_to_job(
+                    j.get("url", ""),
+                    greeting,
+                    company_name=j.get("company", ""),
+                    company_id=j.get("company_id", ""),
+                    dedup_company=dedup_company,
+                    hr_active_days=j.get("hr_active_days"),
+                    hr_active_label=j.get("hr_active_label", ""),
+                    filter_inactive_hr=filter_inactive_hr,
+                )
+                if r.get("skipped") == "company_dedup":
+                    result["total_skipped_company"] += 1
+                elif r.get("skipped") == "inactive_hr":
+                    result["total_skipped_inactive_hr"] += 1
+                elif r.get("filtered"):
+                    result["total_filtered_keyword"] += 1
+                elif r.get("success") and r.get("application_id"):
+                    result["total_applied"] += 1
+                elif not r.get("success"):
+                    result["total_failed"] += 1
+                    if "上限" in r.get("message", ""):
+                        print(f"  ⛔ 达到日限, 停止翻页")
+                        return result
+
+            if page_idx < max_pages - 1:
+                if not self.go_to_next_page():
+                    print(f"  ℹ️ 已是最后一页, 停止翻页")
+                    break
+
+        return result
 
     # ══════════════════════════════════════
     #  聊天监控
