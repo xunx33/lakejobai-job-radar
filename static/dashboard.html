@@ -1756,11 +1756,11 @@ function renderFunnel(d){
   let filteredEl=document.getElementById('funnelFiltered');
   let filteredVal=d.filtered;
   if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
-  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">待投递</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="today" id="funnelApplied">'+sessionSearchApplied+'</div><div class="lbl">已投递</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
-    +'<div class="funnel-card" title="全量被岗位名称黑名单过滤的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">'+filteredVal+'</div><div class="lbl">已过滤</div></div>';
+  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">当前待投递</div></div>'
+    +'<div class="funnel-card"><div class="num" data-key="today" id="funnelApplied">'+sessionSearchApplied+'</div><div class="lbl">当前已投递</div></div>'
+    +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">收到回复</div></div>'
+    +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试/微信</div></div>'
+    +'<div class="funnel-card" title="全量被岗位名称黑名单过滤的岗位数"><div class="num" data-key="filtered" id="funnelFiltered">'+filteredVal+'</div><div class="lbl">搜索过滤</div></div>';
 }
 function updateStatusUI(s){
   ['browserDot','monitorDot'].forEach(id=>{let d=document.getElementById(id);d.className='dot '+(s[id==='browserDot'?'browser_running':'monitor_running']?'on':'off');});
