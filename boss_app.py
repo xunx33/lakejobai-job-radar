@@ -1223,7 +1223,12 @@ async def sync_conversation_messages(conv_id: int):
             if live_messages:
                 replace_conversation_messages(conv_id, live_messages)
                 last = live_messages[-1]
-                update_conversation_last_message(conv_id, last.get("content", ""), last.get("sender", "hr"))
+                # 过滤BOSS系统通知，不算真正的HR回复
+                _sys_prefixes = ("你与该职位竞争者PK情况","竞争力分析","BOSS安全提示","系统消息","沟通分析","今日推荐","该Boss已查看了你的简历")
+                last_content = (last.get("content") or "").strip()
+                is_system = last.get("sender") == "hr" and len(last_content) <= 80 and any(last_content.startswith(p) for p in _sys_prefixes)
+                if not is_system:
+                    update_conversation_last_message(conv_id, last.get("content", ""), last.get("sender", "hr"))
     except asyncio.TimeoutError:
         return {
             "success": False,

@@ -671,7 +671,27 @@ def find_conversation_by_hr_name(hr_name: str) -> Optional[dict]:
 
 
 def update_conversation_last_message(conv_id: int, text: str, sender: str, unread_delta: int = 0):
+    """更新会话的最后一条消息摘要。
+    
+    只在消息内容或发送者真的变化时才更新 last_message_at，
+    避免监控循环打开旧会话时无意义地刷新时间戳导致"收到回复"虚增。
+    """
     db = get_db()
+    # 先检查是否真的有变化
+    current = db.execute(
+        "SELECT last_message_text, last_message_from FROM conversations WHERE id=?",
+        (conv_id,),
+    ).fetchone()
+    if current and current["last_message_text"] == text[:200] and current["last_message_from"] == sender:
+        # 内容和发送者都没变，只更新 unread_count（如果有 delta）
+        if unread_delta:
+            db.execute(
+                "UPDATE conversations SET unread_count=MAX(0, unread_count+?) WHERE id=?",
+                (unread_delta, conv_id),
+            )
+            db.commit()
+        return
+    # 有变化：更新全部字段包括 last_message_at
     db.execute(
         """UPDATE conversations SET last_message_text=?, last_message_from=?,
            last_message_at=CURRENT_TIMESTAMP, unread_count=MAX(0, unread_count+?),

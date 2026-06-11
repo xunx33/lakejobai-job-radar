@@ -1485,7 +1485,22 @@ class BossAutomation(BossScraper):
             if clean_msgs:
                 replace_conversation_messages(conv_id, clean_msgs)
                 last_msg = clean_msgs[-1]
-                update_conversation_last_message(conv_id, last_msg["content"], last_msg["sender"], 0)
+                # 过滤BOSS系统通知：这类消息不算真正的HR回复，不应更新 last_message_from
+                _system_prefixes = (
+                    "你与该职位竞争者PK情况",
+                    "竞争力分析",
+                    "BOSS安全提示",
+                    "系统消息",
+                    "沟通分析",
+                    "今日推荐",
+                    "该Boss已查看了你的简历",
+                )
+                last_content = (last_msg.get("content") or "").strip()
+                is_system_msg = last_msg.get("sender") == "hr" and len(last_content) <= 80 and any(
+                    last_content.startswith(p) for p in _system_prefixes
+                )
+                if not is_system_msg:
+                    update_conversation_last_message(conv_id, last_msg["content"], last_msg["sender"], 0)
 
                 # 从 HR 消息里提取微信号
                 if not matched_conv.get("hr_wechat"):
