@@ -50,6 +50,7 @@ from boss_state import (
     count_hours_replied_in_range,
     count_interest_level,
     count_filtered_applications,
+    get_total_application_count,
     get_daily_limit,
     list_applications,
     add_to_shortlist,
@@ -460,6 +461,8 @@ def get_stats():
         "daily_limit": get_daily_limit(),
         # 已过滤：全量 status='filtered' 计数
         "filtered": count_filtered_applications(),
+        # 岗位列表总数：投递记录页「岗位列表」卡片
+        "total_jobs": get_total_application_count(),
         "daily_stats": today,
     }
 

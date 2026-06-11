@@ -557,6 +557,12 @@ def count_filtered_applications() -> int:
     return row["cnt"] if row else 0
 
 
+def get_total_application_count() -> int:
+    """全量统计 applications 表总记录数（用于投递记录页「岗位列表」卡片）。"""
+    row = get_db().execute("SELECT COUNT(*) as cnt FROM applications").fetchone()
+    return row["cnt"] if row else 0
+
+
 def get_daily_limit() -> int:
     """每日投递上限，优先读 settings 表，否则取 daily_stats.daily_limit，否则兜底 15。"""
     try:

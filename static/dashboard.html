@@ -1514,8 +1514,8 @@ td a:hover{color:var(--accent)}
     <!-- Tab 2: Applications -->
     <div class="tab" id="tab-applications">
       <div class="stats-grid">
+        <div class="stat-card"><div class="num" id="statTotalJobs">0</div><div class="lbl">岗位列表</div></div>
         <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">今日投递</div></div>
-        <div class="stat-card"><div class="num" id="statPending">0</div><div class="lbl">待投递</div></div>
         <div class="stat-card"><div class="num" id="statReplied">0</div><div class="lbl">HR已回复</div></div>
         <div class="stat-card"><div class="num" id="statFiltered">0</div><div class="lbl">已过滤</div></div>
       </div>
@@ -1737,7 +1737,7 @@ function refreshStatus(){
   // /api/stats 同步到：搜索页 funnel + 投递记录页 stat 卡片（同一个数据源）
   fetch('/api/stats').then(r=>r.json()).then(d=>{
     renderFunnel(d);
-    animateNumber(document.getElementById('statPending'),d.pending||0);
+    animateNumber(document.getElementById('statTotalJobs'),d.total_jobs||0);
     animateNumber(document.getElementById('statReplied'),d.replied||0);
     animateNumber(document.getElementById('statFiltered'),d.filtered||0);
   }).catch(()=>{});
@@ -1750,7 +1750,7 @@ function renderFunnel(d){
   let filteredEl=document.getElementById('funnelFiltered');
   let filteredVal=d.filtered;
   if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
-  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending">'+(d.pending||0)+'</div><div class="lbl">待投递</div></div>'
+  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+(d.pending||0)+'</div><div class="lbl">待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today">'+(d.today_applications||0)+'</div><div class="lbl">已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
@@ -1838,7 +1838,7 @@ function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{curre
 
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
-  if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';animateNumber(document.getElementById('statPending'),0);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
+  if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,0);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
   const sl={pending:'待投递',applied:'已投递',replied:'HR已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
   const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered',missing_url:'badge-missing_url'};
   const inactiveDaysEl=document.getElementById('inactiveDays');
@@ -1883,7 +1883,7 @@ function renderJobs(jobs){
       +'</div>';
   }).join('');
   const pendingCount=jobs.filter(j=>(j.status||'pending')==='pending').length;
-  animateNumber(document.getElementById('statPending'),pendingCount);
+  let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,pendingCount);
   const metaEl=document.getElementById('metaJobs');
   if(metaEl)metaEl.textContent=pendingCount+' 待投递';
 }
@@ -1959,7 +1959,7 @@ function toggleShortlist(url,title,company,salary,city,btn){
 }
 
 let appCurrentPage=1,appCurrentStatus='',appAllJobs=[],APP_PAGE_SIZE=15;
-function loadApplications(status){appCurrentStatus=status||'';appCurrentPage=1;fetch('/api/jobs?limit=500'+(status?'&status='+status:'')).then(r=>r.json()).then(d=>{appAllJobs=d.jobs||[];renderAppPage();});}
+function loadApplications(status){appCurrentStatus=status||'';appCurrentPage=1;fetch('/api/jobs?limit=1000'+(status?'&status='+status:'')).then(r=>r.json()).then(d=>{appAllJobs=d.jobs||[];renderAppPage();});}
 function renderAppPage(){
   let tbody=document.getElementById('appTableBody'),total=appAllJobs.length,totalPages=Math.max(1,Math.ceil(total/APP_PAGE_SIZE)),start=(appCurrentPage-1)*APP_PAGE_SIZE;
   if(appCurrentPage>totalPages)appCurrentPage=totalPages;
