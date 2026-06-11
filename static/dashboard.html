@@ -1640,7 +1640,7 @@ function switchTab(tab){
     else{t.classList.remove('active');}
   });
   document.getElementById('pageTitle').textContent={search:'岗位搜索',applications:'投递记录',chat:'聊天',wechat:'微信记录',settings:'设置'}[tab]||'';
-  if(tab==='applications')loadApplications();
+  if(tab==='applications'){loadApplications();refreshStatus();}
   if(tab==='chat')loadConversations();
   if(tab==='wechat'){loadWechatExchanges();startWechatAutoRefresh();}else{stopWechatAutoRefresh();}
 }
@@ -1831,14 +1831,15 @@ function doSearch(){
       summary+='，已过滤 '+filteredTotal+' 条（'+parts.join('、')+'）';
     }
     document.getElementById('searchStatus').innerHTML='<div class="status-banner success" style="margin-top:8px;">'+summary+'</div>';
-    // 更新漏斗「搜索过滤」数字（会话级累加）
-    sessionSearchFiltered+=filteredTotal;
+    // 更新漏斗「搜索过滤」数字（会话级：本次搜索的净变化 = 过滤数 - 恢复数）
+    sessionSearchFiltered=filteredTotal-(d.restored_from_filtered||0);
     let funnelEl=document.getElementById('funnelFiltered');
     if(funnelEl)animateNumber(funnelEl,sessionSearchFiltered);
-    let statFilteredEl=document.getElementById('statFiltered');
-    if(statFilteredEl){let prev=parseInt(statFilteredEl.textContent||'0',10)||0;animateNumber(statFilteredEl,prev+filteredTotal);}
     currentSearchJobs.length?renderJobs(currentSearchJobs):loadJobs();
-    toast('找到 '+d.jobs_found+' 条岗位'+(filteredTotal?'，过滤 '+filteredTotal+' 条':''),'success');
+    let toastMsg='找到 '+d.jobs_found+' 条岗位';
+    if(filteredTotal)toastMsg+='，过滤 '+filteredTotal+' 条';
+    if(d.restored_from_filtered)toastMsg+='，恢复 '+d.restored_from_filtered+' 条';
+    toast(toastMsg,'success');
   }).catch(err=>{searchInFlight=false;document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">失败: '+esc(err.message)+'</div>';toast('搜索失败: '+err.message,'error');});
 }
 function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{currentSearchJobs=[];renderJobs((d.jobs||[]).filter(j=>j.status!=='filtered'));});}
@@ -1916,7 +1917,7 @@ function applyOne(url,btn){
 function skipJob(id){
   fetch('/api/jobs/'+id+'/skip',{method:'POST'}).then(()=>{
     if(currentSearchJobs.length){currentSearchJobs=currentSearchJobs.map(j=>String(j.id)===String(id)?{...j,status:'skipped'}:j);renderJobs(currentSearchJobs);}else loadJobs();
-    if(activeTab==='applications')loadApplications();
+    refreshStatus();if(activeTab==='applications')loadApplications();
     toast('已跳过','info',1500);
   });
 }
@@ -2125,9 +2126,6 @@ function batchApplyAll(maxPages){
     });
     let filtered=before-pending.length;
     if(filtered>0)toast(`已过滤 ${filtered} 个岗位（命中黑名单）`,'info',2000);
-    sessionSearchFiltered+=filtered;
-    let funnelEl=document.getElementById('funnelFiltered');
-    if(funnelEl)animateNumber(funnelEl,sessionSearchFiltered);
   }
   if(maxPages===1&&!pending.length){toast('没有待投递的岗位，请先搜索','warning');return;}
   let dedup=document.getElementById('chkDedupCompany')?document.getElementById('chkDedupCompany').checked:true;
