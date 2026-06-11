@@ -225,7 +225,6 @@ $ lakejob scan-apply --max-pages 5
 ├── boss_firefox.py          # BOSS 搜索 + 福利筛选
 ├── boss_replier.py          # AI 回复生成
 ├── boss_state.py            # SQLite 数据持久化
-├── scraper.py               # 通用抓取工具
 ├── pyproject.toml           # 打包 + CLI 入口
 ├── lakejob_cli/             # CLI (18 命令)
 │   ├── cli.py / client.py / output.py / schema.json
@@ -346,14 +345,6 @@ lakejob status             # 浏览器运行状态
 ---
 
 ## ⚙️ 配置
-
-### config.yaml
-
-```yaml
-browser:
-  headless: false
-  profile_dir: ./.boss_profile/firefox_user_data
-```
 
 ### Web 设置项
 
