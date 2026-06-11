@@ -24,6 +24,7 @@ import time
 from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
+from typing import Optional, Dict, Any
 from urllib.parse import quote_plus
 
 from playwright.sync_api import sync_playwright
@@ -361,6 +362,83 @@ def parse_skills(text):
             if s.lower() in tl:
                 r[cat].append(s)
     return dict(r)
+
+
+# ══════════════════════════════════════
+#  HR 活跃度解析 (CHANGES §4)
+# ══════════════════════════════════════
+
+# BOSS 直聘的活跃度文案:  刚刚活跃 / 今日活跃 / 3日内活跃 / 本周活跃 / 30日内活跃 / 半年内活跃
+_HR_ACTIVE_RE = [
+    (re.compile(r"(刚刚|刚才|刚刚活跃|今日活跃|今天活跃)"), 0),
+    (re.compile(r"(\d+|[一二两三四五六七八九十]+)\s*日(?:内)?\s*活跃"), "day"),
+    (re.compile(r"(\d+|[一二两三四五六七八九十]+)\s*天\s*(?:内)?\s*活跃"), "day"),
+    (re.compile(r"本周活跃|这周活跃|周内活跃|一周(?:内)?活跃"), 7),
+    (re.compile(r"(\d+|[一二两三四五六七八九十]+)\s*周(?:内)?\s*活跃"), "week"),
+    (re.compile(r"30\s*日\s*内\s*活跃|月内活跃"), 30),
+    (re.compile(r"(\d+|[一二两三四五六七八九十]+)\s*个?月\s*内?\s*活跃"), "month"),
+    (re.compile(r"半(?:年|个?年)内活跃|6\s*个月\s*内"), 180),
+    (re.compile(r"(\d+|[一二两三四五六七八九十]+)\s*年\s*活跃"), "year"),
+    (re.compile(r"很久未活跃|不活跃|未知"), -1),
+]
+
+_CN_NUM = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+
+
+def _parse_cn_int(s: str) -> Optional[int]:
+    """'三' -> 3, '十二' -> 12, '3' -> 3. 失败返 None."""
+    if not s:
+        return None
+    if s.isdigit():
+        return int(s)
+    if s in _CN_NUM:
+        return _CN_NUM[s]
+    if len(s) == 2 and s[0] == "十":
+        return 10 + _CN_NUM.get(s[1], 0)
+    if len(s) == 2 and s[1] == "十":
+        return _CN_NUM.get(s[0], 0) * 10
+    if len(s) == 3 and s[1] == "十":
+        return _CN_NUM.get(s[0], 0) * 10 + _CN_NUM.get(s[2], 0)
+    return None
+
+
+def parse_hr_active(text: str) -> dict:
+    """解析 BOSS 的 HR 活跃度文案, 返回 {days, label, raw}.
+
+    Examples:
+        "刚刚活跃"           -> {days: 0, label: "刚刚活跃", raw: ...}
+        "今日活跃"           -> {days: 0, ...}
+        "3日内活跃"          -> {days: 3, ...}
+        "本周活跃"           -> {days: 7, ...}
+        "30日内活跃"         -> {days: 30, ...}
+        "半年内活跃"         -> {days: 180, ...}
+        "三个月活跃"         -> {days: 90, ...}
+        "一年活跃"           -> {days: 365, ...}
+        "" (没匹配到)         -> {days: -1, label: "", raw: ""}
+    """
+    if not text:
+        return {"days": -1, "label": "", "raw": ""}
+    raw = text.strip()
+    for pat, mode in _HR_ACTIVE_RE:
+        m = pat.search(raw)
+        if not m:
+            continue
+        if isinstance(mode, int):
+            return {"days": mode, "label": raw, "raw": raw}
+        # mode = 'day' | 'week' | 'month' | 'year'  → 提取数字 × 倍数
+        num_str = next((g for g in m.groups() if g), None)
+        n = _parse_cn_int(num_str) if num_str else None
+        if n is None:
+            return {"days": -1, "label": raw, "raw": raw}
+        if mode == "day":
+            return {"days": n, "label": raw, "raw": raw}
+        if mode == "week":
+            return {"days": n * 7, "label": raw, "raw": raw}
+        if mode == "month":
+            return {"days": n * 30, "label": raw, "raw": raw}
+        if mode == "year":
+            return {"days": n * 365, "label": raw, "raw": raw}
+    return {"days": -1, "label": raw, "raw": raw}
 
 
 # ══════════════════════════════════════
@@ -717,8 +795,30 @@ class BossScraper:
                         || lines.find(x => x.includes('·') && x.length < 40) || '';
                     let experience = lines.find(x => /经验|应届|在校|不限/.test(x) && x.length < 30) || '';
                     let education = lines.find(x => /本科|硕士|博士|大专|学历不限|中专|高中/.test(x) && x.length < 30) || '';
+                    // CHANGES §3 §4: 抓 companyId / brandName / hrActive
+                    let companyId = '';
+                    let brandName = '';
+                    let hrActive = '';
+                    // 1) 公司块 href 一般是 /gongsi/<id>.html
+                    const companyLink = card.querySelector('a[href*="/gongsi/"]');
+                    if (companyLink) {
+                        const chref = companyLink.getAttribute('href') || '';
+                        const cm = chref.match(/\\/gongsi\\/([a-zA-Z0-9_\\-]+)\\.html/);
+                        if (cm) companyId = cm[1];
+                        // brandName 优先用 brand-name 元素文本, 否则 companyLink 文本
+                        brandName = pickText(companyLink, ['.brand-name', '.company-name'])
+                                  || (companyLink.innerText || '').trim().split('\\n')[0] || '';
+                    }
+                    // 2) HR 活跃度: 在卡片里找含"活跃"二字的元素
+                    const activeEl = card.querySelector('[class*="active"], [class*="active-time"], [class*="online"]')
+                                  || Array.from(card.querySelectorAll('span, em, i')).find(
+                                      e => /活跃/.test((e.innerText || '').trim()) && (e.innerText || '').trim().length <= 12
+                                  );
+                    if (activeEl) {
+                        hrActive = (activeEl.innerText || '').trim();
+                    }
                     if (!company) {
-                        company = lines.find(x =>
+                        company = brandName || lines.find(x =>
                             x !== title && x !== salary && x !== city &&
                             !/经验|应届|在校|不限|本科|硕士|博士|大专|学历|·|\\d+[-~]\\d+K/i.test(x) &&
                             x.length > 1 && x.length < 40
@@ -727,7 +827,10 @@ class BossScraper:
                     title = title.replace(/\\s+/g, ' ').trim();
                     if (title && salary) {
                         seen.add(href);
-                        cards.push({title, salary, company, city, experience, education, url: href});
+                        cards.push({
+                            title, salary, company, companyId, brandName, hrActive,
+                            city, experience, education, url: href
+                        });
                     }
                 });
                 return cards;
@@ -748,6 +851,9 @@ class BossScraper:
                     "title": title,
                     "salary": decode_salary((row.get("salary") or "").strip()),
                     "company": (row.get("company") or "").strip(),
+                    "company_id": (row.get("companyId") or "").strip(),
+                    "brand_name": (row.get("brandName") or "").strip(),
+                    "hr_active_label": (row.get("hrActive") or "").strip(),
                     "experience": (row.get("experience") or "").strip(),
                     "education": (row.get("education") or "").strip(),
                     "city": (row.get("city") or "").strip(),
@@ -757,6 +863,13 @@ class BossScraper:
                     "hr_title": "",
                 }
             )
+        # 二次解析: 文本 -> 天数
+        for j in jobs:
+            if j.get("hr_active_label"):
+                parsed = parse_hr_active(j["hr_active_label"])
+                j["hr_active_days"] = parsed["days"]
+            else:
+                j["hr_active_days"] = -1
         return jobs
 
     def _scroll_all(self, max_scrolls: int = 80, stable_rounds: int = 4):
@@ -801,8 +914,8 @@ class BossScraper:
     # ── 详情页 ──
 
     def fetch_detail(self, url):
-        """访问详情页，提取岗位描述 + HR/招聘者信息"""
-        result = {"description": "", "hr_name": "", "hr_title": ""}
+        """访问详情页，提取岗位描述 + HR/招聘者信息 + 活跃度"""
+        result = {"description": "", "hr_name": "", "hr_title": "", "hr_active_label": "", "hr_active_days": -1}
         try:
             self.page.goto(url, wait_until="load", timeout=45000)
             pause(2, 4)
@@ -841,12 +954,37 @@ class BossScraper:
                             }
                         }
                     }
-                    return {hrName, hrTitle};
+                    // CHANGES §4: 详情页抓 HR 活跃度
+                    let hrActive = '';
+                    const activeSel = document.querySelector('[class*="active-time"], [class*="boss-active"]');
+                    if (activeSel) {
+                        hrActive = (activeSel.innerText || '').trim();
+                    } else {
+                        for (const el of document.querySelectorAll('span, em, i')) {
+                            const t = (el.innerText || '').trim();
+                            if (/活跃/.test(t) && t.length <= 12) { hrActive = t; break; }
+                        }
+                    }
+                    return {hrName, hrTitle, hrActive};
                 }""")
                 result["hr_name"] = (hr_info.get("hrName") or "").strip()
                 result["hr_title"] = (hr_info.get("hrTitle") or "").strip()
+                result["hr_active_label"] = (hr_info.get("hrActive") or "").strip()
             except:
                 pass
+
+            # 二次解析: 文本 -> 天数
+            if result.get("hr_active_label"):
+                parsed = parse_hr_active(result["hr_active_label"])
+                result["hr_active_days"] = parsed["days"]
+            else:
+                # 从 body 文本兜底找一遍
+                for l in lines:
+                    if "活跃" in l and len(l) <= 12:
+                        result["hr_active_label"] = l
+                        parsed = parse_hr_active(l)
+                        result["hr_active_days"] = parsed["days"]
+                        break
 
             # ── 提取岗位描述 ──
             body = self.page.inner_text("body")
