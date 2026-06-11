@@ -852,11 +852,17 @@ async def search_jobs(req: SearchRequest):
 
         saved_ids = []
         result_jobs = []
+        restored_count = 0
         for j in jobs:
             j["url"] = _normalize_job_url(j.get("url", ""))
             if j.get("url"):
                 existing = get_application_by_url(j["url"])
                 if existing:
+                    # 若之前被关键词过滤为 filtered，现在不再匹配过滤条件 → 恢复为 pending
+                    if existing.get("status") == "filtered":
+                        update_application_status(existing["id"], "pending")
+                        existing["status"] = "pending"
+                        restored_count += 1
                     updated = update_application_from_job(existing["id"], j) or existing
                     saved_ids.append(updated["id"])
                     result_jobs.append(_search_job_payload(j, updated))
@@ -881,6 +887,7 @@ async def search_jobs(req: SearchRequest):
         return {
             "jobs_found": len(jobs),
             "saved": len(saved_ids),
+            "restored_from_filtered": restored_count,
             "skipped_company": skipped_company,
             "skipped_inactive_hr": skipped_inactive,
             "skipped_keyword": skipped_keyword,

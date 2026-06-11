@@ -1523,7 +1523,7 @@ td a:hover{color:var(--accent)}
           <button class="btn btn-sm" onclick="loadApplications('')">全部</button>
           <button class="btn btn-sm" onclick="loadApplications('pending')">待投递</button>
           <button class="btn btn-sm" onclick="loadApplications('applied')">已投递</button>
-          <button class="btn btn-sm" onclick="loadApplications('replied')">已回复</button>
+          <button class="btn btn-sm" onclick="loadApplications('replied')">收到回复</button>
           <button class="btn btn-sm" onclick="loadApplications('filtered')">已过滤</button>
           <button class="btn btn-sm" onclick="loadShortlists()">收藏</button>
           <button class="btn btn-sm btn-primary" onclick="batchApplyPending()" style="margin-left:auto;">一键投递待投递</button>
@@ -1819,8 +1819,11 @@ function doSearch(){
     if(d.detail){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">'+esc(d.detail)+'</div>';toast(d.detail,'error');return;}
     if(d.jobs_found===undefined||d.jobs_found===null){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">搜索失败</div>';toast('搜索失败','error');return;}
     currentSearchJobs=Array.isArray(d.jobs)?d.jobs:[];
-    // 构建搜索结果摘要：含过滤统计
+    // 构建搜索结果摘要：含过滤统计 + 恢复统计
     let summary='找到 '+d.jobs_found+' 条，已保存 '+d.saved+' 条';
+    if(d.restored_from_filtered>0){
+      summary+='（含 '+d.restored_from_filtered+' 条从过滤状态恢复为可投递）';
+    }
     let filteredTotal=(d.skipped_keyword||0)+(d.skipped_garbled||0)+(d.skipped_company||0)+(d.skipped_inactive_hr||0);
     if(filteredTotal>0){
       let parts=[];
@@ -1845,7 +1848,7 @@ function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{curre
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
   if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,sessionSearchPending);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
-  const sl={pending:'待投递',applied:'已投递',replied:'HR已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
+  const sl={pending:'待投递',applied:'已投递',replied:'收到回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
   const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered',missing_url:'badge-missing_url'};
   const inactiveDaysEl=document.getElementById('inactiveDays');
   const inactiveThreshold=inactiveDaysEl?parseInt(inactiveDaysEl.value||'7',10):7;
@@ -1976,7 +1979,7 @@ function renderAppPage(){
   if(appCurrentPage>totalPages)appCurrentPage=totalPages;
   let page=appAllJobs.slice(start,start+APP_PAGE_SIZE);
   if(!total){tbody.innerHTML='<tr><td colspan="6" class="empty">暂无记录</td></tr>';document.getElementById('appPagination').innerHTML='';return;}
-  let sl={pending:'待投递',applied:'已投递',replied:'已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered'};
+  let sl={pending:'待投递',applied:'已投递',replied:'收到回复',skipped:'已跳过',failed:'失败',filtered:'已过滤'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered'};
   tbody.innerHTML=page.map(j=>{let s=j.status||'pending';return'<tr><td><a href="'+attr(j.job_url)+'" target="_blank">'+esc(j.job_title||j.title||'未知')+'</a></td><td>'+esc(j.company||'')+'</td><td>'+esc(j.salary||'')+'</td><td>'+esc(j.city||'')+'</td><td><span class="badge '+sb[s]+'">'+sl[s]+'</span></td><td>'+(j.job_url?'<button class="btn btn-sm btn-primary" onclick="applyOne(\''+attr(j.job_url)+'\',this)">投递</button>':'')+'</td></tr>';}).join('');
   document.getElementById('appPagination').innerHTML='<button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage=1;renderAppPage()">«</button><button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage--;renderAppPage()">‹</button><span>'+(start+1)+'-'+Math.min(start+APP_PAGE_SIZE,total)+' / '+total+'</span><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage++;renderAppPage()">›</button><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage=appTotalPages;renderAppPage()">»</button>';
 }
