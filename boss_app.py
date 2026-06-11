@@ -1307,7 +1307,8 @@ async def update_settings(req: SettingsUpdate):
             set_setting("ai_api_key", str(v))
             updates["ai_key_configured"] = "true"
             continue
-        if v is not None and v != "":
+        if v is not None:
+            # 允许保存空字符串（用于清空过滤关键词等场景）
             set_setting(k, str(v))
             updates[k] = str(v)
     await broadcast_ws({"type": "settings_updated", "updates": updates})

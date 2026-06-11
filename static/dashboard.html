@@ -1501,7 +1501,7 @@ td a:hover{color:var(--accent)}
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
           <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位关键词过滤（英文逗号分隔）</span>
-          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;" onchange="saveTitleFilterToSettings()">
+          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;" oninput="debounceSaveTitleFilter()">
           <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位会被自动跳过投递</span>
         </div>
       </div>
@@ -2094,7 +2094,12 @@ function startWechatAutoRefresh(){
 function stopWechatAutoRefresh(){if(wechatRefreshTimer){clearInterval(wechatRefreshTimer);wechatRefreshTimer=null;}}
 function copyWechat(text,btn){navigator.clipboard.writeText(text).then(()=>{btn.textContent='已复制';btn.classList.add('btn-success');btn.classList.remove('btn-primary');setTimeout(()=>{btn.textContent='复制';btn.classList.remove('btn-success');btn.classList.add('btn-primary');},1500);toast('已复制微信号','success',1200);});}
 
-// 岗位关键词过滤 → 同步到 settings（让后端能读到）
+// 岗位关键词过滤 → 实时同步到 settings（防抖 500ms）
+let _titleFilterTimer=null;
+function debounceSaveTitleFilter(){
+  clearTimeout(_titleFilterTimer);
+  _titleFilterTimer=setTimeout(saveTitleFilterToSettings,500);
+}
 function saveTitleFilterToSettings(){
   let v=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({title_filter_keywords:v})}).catch(()=>{});
