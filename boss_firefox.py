@@ -502,9 +502,9 @@ class BossScraper:
                 );
             }""")
         except Exception:
-            # 页面内容已明确出现强登录提示，但 JS 检测失败时宁可保守返回 False，
-            # 避免误把普通详情页当成掉线。
-            return False
+            # JS 检测失败时, body 又已出现强登录提示,
+            # 宁可保守视为"仍在登录页"返回 True, 避免拿未登录态去操作业务接口.
+            return True
 
     def is_logged_in_page(self):
         """当前页面是否能作为已登录态使用；about:blank 属于未知，不当作过期。"""
