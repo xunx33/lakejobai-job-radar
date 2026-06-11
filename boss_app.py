@@ -122,7 +122,7 @@ async def on_startup():
 _playwright_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="pw")
 
 
-async def _run_pw(fn, *args):
+async def _run_pw(fn, *args, **kwargs):
     """在 Playwright 专属线程中执行同步操作，清除该线程的 asyncio 状态。"""
 
     def _wrapper():
@@ -131,7 +131,7 @@ async def _run_pw(fn, *args):
             asyncio.set_event_loop(None)
         except Exception:
             pass
-        return fn(*args)
+        return fn(*args, **kwargs)
 
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(_playwright_executor, _wrapper)
