@@ -1626,7 +1626,7 @@ td a:hover{color:var(--accent)}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false;
+let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0;
 
 function switchTab(tab){
   activeTab=tab;
@@ -1750,7 +1750,7 @@ function renderFunnel(d){
   let filteredEl=document.getElementById('funnelFiltered');
   let filteredVal=d.filtered;
   if(filteredVal===undefined&&filteredEl)filteredVal=parseInt(filteredEl.textContent||'0',10)||0;
-  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+(d.pending||0)+'</div><div class="lbl">待投递</div></div>'
+  el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today">'+(d.today_applications||0)+'</div><div class="lbl">已投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">HR回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试</div></div>'
@@ -1838,7 +1838,7 @@ function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{curre
 
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
-  if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,0);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
+  if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,sessionSearchPending);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
   const sl={pending:'待投递',applied:'已投递',replied:'HR已回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
   const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered',missing_url:'badge-missing_url'};
   const inactiveDaysEl=document.getElementById('inactiveDays');
@@ -1883,7 +1883,9 @@ function renderJobs(jobs){
       +'</div>';
   }).join('');
   const pendingCount=jobs.filter(j=>(j.status||'pending')==='pending').length;
-  let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,pendingCount);
+  // 会话级待投递：只在有搜索结果时更新（搜索完成后、投递后刷新）
+  if(currentSearchJobs.length){sessionSearchPending=pendingCount;}
+  let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,sessionSearchPending);
   const metaEl=document.getElementById('metaJobs');
   if(metaEl)metaEl.textContent=pendingCount+' 待投递';
 }
