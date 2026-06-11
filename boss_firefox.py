@@ -668,53 +668,45 @@ class BossScraper:
         keyword,
         city_code="100010000",
         job_type: str = "",       # full=全职, part=兼职, practice=实习, ''=不限
-        salary_min: Optional[int] = None,  # K 单位
+        salary: str = "",         # BOSS 薪资 code 直传, 如 "405"=10-20K
+        salary_min: Optional[int] = None,  # K 单位 (旧接口兼容)
         salary_max: Optional[int] = None,
-        experience: Optional[int] = None,  # 经验 code: 101/102/103/104/105/106
-        edu: Optional[int] = None,         # 学历 code: 201/202/203/204
-        scale: Optional[int] = None,      # 公司规模 code: 301/302/303/304/305
-        stage: Optional[int] = None,      # 融资阶段 code: 401/402/403/404/405/406
+        experience: Optional[int] = None,  # 经验 code
+        edu: Optional[int] = None,         # 学历 code
+        scale: Optional[int] = None,      # 公司规模 code
+        stage: Optional[int] = None,      # 融资阶段 code
     ):
         """搜索关键词，返回岗位列表。
 
-        BOSS 直聘搜索 URL 参数 (CHANGES §3 §4 配套 + 修复前端筛选全不生效的 BUG-026/027):
-        - experience= 经验 (101=应届, 102=1年以内, 103=1-3年, 104=3-5年, 105=5-10年, 106=10年以上)
-        - edu=       学历 (201=高中, 202=大专, 203=本科, 204=硕士, 205=博士)
+        BOSS 直聘搜索 URL 参数:
+        - query=     搜索关键词
+        - city=      城市 code
+        - experience= 经验 (102=应届, 103=1年内, 104=1-3年, 105=3-5年, 106=5-10年, 107=10年以上, 108=在校)
+        - edu=       学历 (202=大专, 203=本科, 204=硕士, 205=博士, 206=高中, 208=中专, 209=初中及以下)
         - scale=     公司规模 (301=0-20, 302=20-99, 303=100-499, 304=500-999, 305=1000-9999, 306=10000以上)
-        - stage=     融资阶段 (401=未融资, 402=天使轮, 403=A轮, 404=B轮, 405=C轮及以后, 406=已上市)
-        - jobType=   全职/兼职 (full=全职, part=兼职, practice=实习)
-        - salary=    薪资 (按 BOSS 内部 code, 403=3K以下, 404=3-5K, 405=5-10K, 406=10-20K, 407=20-50K, 408=50K以上)
+        - stage=     融资阶段 (801=未融资, 802=天使轮, 803=A轮, 804=B轮, 805=C轮, 806=D轮及以上, 807=已上市, 808=不需要融资)
+        - positionType= 岗位类型数字 (1=全职, 2=兼职, 3=实习)
+        - jobType=   岗位类型字符串 (full=全职, part=兼职, practice=实习)
+        - salary=    薪资 (BOSS code: 402=3K以下, 403=3-5K, 404=5-10K, 405=10-20K, 406=20-50K, 407=50K以上)
         """
         t0 = time.time()
-        # BOSS 内部薪资 code
-        salary_code_map = {3: "403", 5: "404", 10: "405", 20: "406", 50: "407"}
-        salary = ""
-        if salary_min is not None and salary_max is not None:
-            # 优先匹配两端的 code
+
+        # 薪资参数: 优先用前端直传的 salary code, 其次用 salary_min/max 转换
+        if not salary and salary_min is not None and salary_max is not None:
+            salary_code_map = {3: "403", 5: "404", 10: "405", 20: "406", 50: "407"}
             for k, code in sorted(salary_code_map.items(), reverse=True):
                 if salary_min <= k:
-                    lo = code
+                    salary = code
                     break
             else:
-                lo = "403"
-            for k, code in sorted(salary_code_map.items()):
-                if salary_max >= k:
-                    hi = code
-                    break
-            else:
-                hi = "408"
-            # BOSS 薪资用单值 code 表示: 用下限 (lo) 即可, 上限靠排序
-            salary = lo
+                salary = "403"
 
         params = {
-            "query": quote_plus(keyword),
+            "query": keyword,
             "city": city_code,
         }
-        # BUG-028 修复: BOSS 改版后真实参数名不确定, 同时传多种格式以兼容
+        # 同时传 positionType (数字) 和 jobType (字符串), 兼容 BOSS 新旧版本
         if job_type:
-            # Web 端 SPA 内部常用 'positionType' (数字 1=全职, 2=兼职, 3=实习)
-            # 老 API/移动端用 'jobType' (full/part/practice)
-            # 我们传两种, BOSS 接受哪种就用哪种
             type_map_legacy = {"full": "full", "part": "part", "practice": "practice"}
             type_map_new = {"full": "1", "part": "2", "practice": "3"}
             params["positionType"] = type_map_new.get(job_type, job_type)
@@ -903,7 +895,7 @@ class BossScraper:
         seen = set()
         for row in rows or []:
             url = (row.get("url") or "").strip()
-            title = (row.get("title") or "").strip()
+            title = decode_salary((row.get("title") or "").strip())
             if not url or not title or url in seen:
                 continue
             seen.add(url)

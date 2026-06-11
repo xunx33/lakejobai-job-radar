@@ -281,7 +281,8 @@ _DEFAULT_TITLE_BLACKLIST = (
 )
 
 # 名称乱码模式: BOSS 详情页偶尔有 ? 占位符 / 全角字符 / 不可识别字符
-_GARBLE_RE = __import__("re").compile(r"\?{3,}|[\uFFFD]{2,}")
+# BOSS 自定义数字编码: 0xE030-0xE039 映射 0-9, 混入标题时显示为不可见字符
+_GARBLE_RE = __import__("re").compile(r"\?{3,}|[\uFFFD]{2,}|[\uE030-\uE039]{2,}")
 
 
 def _is_garbled_text(text: str) -> bool:
@@ -337,14 +338,19 @@ class SearchRequest(BaseModel):
     city: str = ""
     welfare: Optional[str] = None
     limit: int = 60
-    # CHANGES §3 §4 + BUG-026/027 修复: 前端发了但后端没接的 5 个字段
-    job_type: Optional[str] = None          # full/part/practice/''
-    salary_min: Optional[int] = None        # K
-    salary_max: Optional[int] = None        # K
-    experience: Optional[int] = None        # 101-106
-    edu: Optional[int] = None               # 201-205
-    scale: Optional[int] = None             # 301-306
-    stage: Optional[int] = None             # 401-406
+    # ── 前端筛选字段 (直接接收前端实际发送的字段名和code值) ──
+    # 薪资: 前端发 BOSS 薪资 code (402=3K以下, 403=3-5K, 404=5-10K, 405=10-20K, 406=20-50K, 407=50K以上)
+    salary: Optional[str] = None              # BOSS 薪资 code, 如 "405"
+    # 经验: 前端发 code (108=在校, 102=应届, 103=1年内, 104=1-3年, 105=3-5年, 106=5-10年, 107=10年以上)
+    experience: Optional[int] = None
+    # 学历: 前端发 code (209=初中及以下, 208=中专, 206=高中, 202=大专, 203=本科, 204=硕士, 205=博士)
+    degree: Optional[int] = None              # 前端字段名 degree, 映射到 BOSS URL 的 edu 参数
+    # 岗位类型: 前端发 "1"=全职, "2"=兼职, "3"=实习
+    job_type: Optional[str] = None
+    # 公司规模: code 301-306
+    scale: Optional[int] = None
+    # 融资阶段: 前端发 code 801-808, 映射到 BOSS URL 的 stage 参数
+    stage: Optional[int] = None
     # 入库前过滤: dedup_company / filter_inactive_hr 在搜索阶段就过滤掉低质岗位
     dedup_company: Optional[bool] = None
     filter_inactive_hr: Optional[bool] = None
@@ -753,18 +759,36 @@ async def search_jobs(req: SearchRequest):
     monitor_paused = True
     try:
         city_code = CITY_MAP.get(req.city or get_setting("default_city", "全国"), "100010000")
+
+        # ── 前端 code → boss_firefox.search() 参数映射 ──
+
+        # job_type: 前端 "1"=全职, "2"=兼职 → search() 需要 "full"/"part"/"practice"
+        _JOB_TYPE_MAP = {"1": "full", "2": "part", "3": "practice",
+                         "full": "full", "part": "part", "practice": "practice"}
+        job_type_resolved = _JOB_TYPE_MAP.get((req.job_type or ""), "")
+
+        # salary: 前端发 BOSS 薪资 code (402-407), 直接透传给 search() 的 salary 参数
+        # boss_firefox.search() 的 salary_code_map 是 {3:"403", 5:"404", 10:"405", 20:"406", 50:"407"}
+        # 但前端已经发的是 BOSS code, 不需要再用 salary_min/salary_max 做转换
+        salary_code = req.salary or ""
+
+        # degree → edu: 前端发 degree code, 直接作为 BOSS URL 的 edu 参数
+        # 前端: 209=初中及以下, 208=中专, 206=高中, 202=大专, 203=本科, 204=硕士, 205=博士
+        edu_code = req.degree
+
+        # stage: 前端发 801-808, BOSS URL 的 stage 参数也是这个 code 体系
+        stage_code = req.stage
+
         try:
-            # BUG-026/027 修复: 把 7 个新字段透传给 BOSS URL
             jobs = await _run_pw(
                 automation.search,
                 req.keyword, city_code,
-                job_type=req.job_type or "",
-                salary_min=req.salary_min,
-                salary_max=req.salary_max,
+                job_type=job_type_resolved,
+                salary=salary_code,
                 experience=req.experience,
-                edu=req.edu,
+                edu=edu_code,
                 scale=req.scale,
-                stage=req.stage,
+                stage=stage_code,
             )
         except HTTPException:
             raise
