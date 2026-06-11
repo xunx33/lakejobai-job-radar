@@ -50,6 +50,8 @@ from boss_state import (
     count_hours_replied_in_range,
     count_interest_level,
     count_filtered_applications,
+    clear_all_applications,
+    clear_all_conversations,
     get_total_application_count,
     count_applied_applications,
     get_daily_limit,
@@ -1316,6 +1318,22 @@ async def resume_auto_reply(conv_id: int):
         }
     )
     return {"status": "ok"}
+
+
+@app.post("/api/applications/clear")
+async def api_clear_applications():
+    """一键清空所有岗位列表（含收藏）。"""
+    deleted = clear_all_applications()
+    await broadcast_ws({"type": "applications_cleared"})
+    return {"success": True, "deleted": deleted}
+
+
+@app.post("/api/conversations/clear")
+async def api_clear_conversations():
+    """一键清空所有聊天数据。"""
+    deleted = clear_all_conversations()
+    await broadcast_ws({"type": "conversations_cleared"})
+    return {"success": True, "deleted": deleted}
 
 
 # ══════════════════════════════════════

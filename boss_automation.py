@@ -955,7 +955,9 @@ class BossAutomation(BossScraper):
             try:
                 self.page.keyboard.press("Enter")
                 pause(0.3, 0.5)
-                return True
+                body = self.page.inner_text("body")
+                if check in body:
+                    return True
             except Exception:
                 pass
 

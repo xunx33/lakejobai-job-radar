@@ -795,6 +795,16 @@ td a:hover{color:var(--accent)}
   flex:1;
   min-width:0;
 }
+.chat-list-item .name .reply-dot{
+  display:inline-block;
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 5px rgba(239,68,68,.5);
+  margin-left:5px;
+  vertical-align:middle;
+  flex-shrink:0;
+}
 .chat-list-item .preview{
   font-size:12px;
   color:var(--text-3);
@@ -988,6 +998,16 @@ td a:hover{color:var(--accent)}
   gap:8px;
   background:var(--bg-1);
   flex-shrink:0;
+  align-items:flex-end;
+}
+.chat-input-area .btn-send{
+  height:40px;
+  padding:0 18px;
+  border-radius:8px;
+  font-size:14px;
+  font-weight:600;
+  white-space:nowrap;
+  flex-shrink:0;
 }
 .chat-input-area textarea{
   flex:1;
@@ -1162,6 +1182,35 @@ td a:hover{color:var(--accent)}
 @keyframes modalIn{
   from{opacity:0;transform:translateY(20px) scale(.96)}
   to{opacity:1;transform:translateY(0) scale(1)}
+}
+.confirm-modal .modal-box{
+  max-width:380px;
+  text-align:center;
+  padding:28px 24px 20px;
+}
+.confirm-modal .confirm-icon{
+  font-size:36px;
+  margin-bottom:12px;
+}
+.confirm-modal .confirm-title{
+  font-size:15px;
+  font-weight:700;
+  color:var(--text);
+  margin-bottom:6px;
+}
+.confirm-modal .confirm-desc{
+  font-size:12.5px;
+  color:var(--text-3);
+  margin-bottom:20px;
+  line-height:1.6;
+}
+.confirm-modal .confirm-actions{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+}
+.confirm-modal .confirm-actions .btn{
+  min-width:90px;
 }
 .analyze-modal-overlay h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
 
@@ -1376,20 +1425,20 @@ td a:hover{color:var(--accent)}
     <div class="sidebar-logo">
       <div class="logo-mark">B</div>
       <div class="logo-text">
-        <h1>BOSS 控制台</h1>
-        <div>v2.0 · job-radar</div>
+        <h1>BOSS 自动化控制台</h1>
+        <div>v3.0 Jeff优化版<br />job-radar</div>
       </div>
     </div>
     <nav class="sidebar-nav" id="sideNav">
       <a class="active" data-tab="search"><span class="icon">🔍</span><span>岗位搜索</span></a>
-      <a data-tab="applications"><span class="icon">📋</span><span>投递记录</span></a>
-      <a data-tab="chat"><span class="icon">💬</span><span>聊天</span><span class="badge-count" id="navUnread" style="display:none;">0</span></a>
+      <a data-tab="applications"><span class="icon">📋</span><span>岗位列表</span></a>
+      <a data-tab="chat"><span class="icon">💬</span><span>聊天回复</span><span class="badge-count" id="navUnread" style="display:none;">0</span></a>
       <a data-tab="wechat"><span class="icon">📱</span><span>微信记录</span></a>
-      <a data-tab="settings"><span class="icon">⚙</span><span>设置</span></a>
+      <a data-tab="settings"><span class="icon">⚙️</span><span>设置</span></a>
     </nav>
     <div class="sidebar-status">
       <div class="row"><span class="dot off" id="browserDot"></span><span>浏览器 <span id="browserStatus">未启动</span></span></div>
-      <div class="row"><span class="dot off" id="monitorDot"></span><span>监控 <span id="monitorStatus">未启动</span></span></div>
+      <div class="row"><span class="dot off" id="monitorDot"></span><span>监控网关 <span id="monitorStatus">未启动</span></span></div>
     </div>
   </aside>
 
@@ -1428,8 +1477,8 @@ td a:hover{color:var(--accent)}
           </div>
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;align-items:center;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">批量岗位关键词（英文逗号分隔）</span>
-          <input type="text" id="setSearchKeywords" placeholder="例如：AI Agent,大模型开发,AI产品经理" style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;font-family:var(--font);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s;">
+          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">批量岗位关键词(英文逗号分隔)</span>
+          <input type="text" id="setSearchKeywords" placeholder="例如：AI Agent,大模型开发,产品经理" style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;font-family:var(--font);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s;">
           <button class="btn btn-success" onclick="batchSearch()">批量搜索</button>
         </div>
         <div class="search-row advanced">
@@ -1496,13 +1545,13 @@ td a:hover{color:var(--accent)}
           <label class="toggle-pill" title="HR超过这么多天未活跃就跳过">
             <input type="checkbox" id="chkFilterInactiveHr" checked>
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            <span class="toggle-label">跳过HR <input type="number" id="inactiveDays" value="7" min="1" max="60" class="toggle-num"> 天未活跃</span>
+            <span class="toggle-label">跳过 <input type="number" id="inactiveDays" value="7" min="1" max="60" class="toggle-num"> 天未活跃的招聘者</span>
           </label>
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位关键词过滤（英文逗号分隔）</span>
+          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称过滤(英文逗号分隔)</span>
           <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;" oninput="debounceSaveTitleFilter()">
-          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位会被自动跳过投递</span>
+          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位名称会被过滤(可在岗位列表查看)</span>
         </div>
       </div>
 
@@ -1514,7 +1563,7 @@ td a:hover{color:var(--accent)}
     <!-- Tab 2: Applications -->
     <div class="tab" id="tab-applications">
       <div class="stats-grid">
-        <div class="stat-card"><div class="num" id="statTotalJobs">0</div><div class="lbl">岗位列表</div></div>
+        <div class="stat-card"><div class="num" id="statTotalJobs">0</div><div class="lbl">列表岗位数</div></div>
         <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">列表投递数</div></div>
         <div class="stat-card"><div class="num" id="statFiltered">0</div><div class="lbl">列表过滤数</div></div>
       </div>
@@ -1523,10 +1572,11 @@ td a:hover{color:var(--accent)}
           <button class="btn btn-sm" onclick="loadApplications('')">全部</button>
           <button class="btn btn-sm" onclick="loadApplications('pending')">待投递</button>
           <button class="btn btn-sm" onclick="loadApplications('applied')">已投递</button>
-          <button class="btn btn-sm" onclick="loadApplications('replied')">收到回复</button>
+          <button class="btn btn-sm" onclick="loadApplications('replied')">需回复</button>
           <button class="btn btn-sm" onclick="loadApplications('filtered')">已过滤</button>
           <button class="btn btn-sm" onclick="loadShortlists()">收藏</button>
-          <button class="btn btn-sm btn-primary" onclick="batchApplyPending()" style="margin-left:auto;">一键投递待投递</button>
+          <button class="btn btn-sm btn-primary" onclick="batchApplyPending()" style="margin-left:auto;">一键投递（待投递）</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmClearApplications()">清空列表</button>
         </div>
         <div id="applyProgress"></div>
         <div class="table-wrap">
@@ -1549,18 +1599,19 @@ td a:hover{color:var(--accent)}
               </div>
             </div>
             <div class="header-right">
-              <button class="btn btn-sm btn-ghost" onclick="navigateBrowserToChat()">浏览器打开</button>
-              <button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停AI</button>
-              <button class="btn btn-sm btn-primary" id="btnManualSend" onclick="sendManualMessage()" disabled>发送</button>
+              <button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button>
             </div>
           </div>
           <div class="chat-messages" id="chatMessages"><div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div></div>
-          <div class="chat-input-area"><textarea id="chatInput" placeholder="输入消息..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendManualMessage();}"></textarea></div>
+          <div class="chat-input-area"><textarea id="chatInput" placeholder="输入消息..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendManualMessage();}"></textarea><button class="btn btn-sm btn-primary btn-send" id="btnManualSend" onclick="sendManualMessage()" disabled>发送</button></div>
         </div>
       </div>
-      <div class="stats-grid" style="margin-top:14px;">
-        <div class="stat-card"><div class="num" id="chatStatReplied">0</div><div class="lbl">收到回复</div></div>
-        <div class="stat-card"><div class="num" id="chatStatInterview">0</div><div class="lbl">面试/微信</div></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:14px;">
+        <div class="stats-grid" style="margin:0;flex:1;">
+          <div class="stat-card"><div class="num" id="chatStatReplied">0</div><div class="lbl">需要回复</div></div>
+          <div class="stat-card"><div class="num" id="chatStatInterview">0</div><div class="lbl">面试/微信</div></div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="confirmClearConversations()">清空聊天</button>
       </div>
     </div>
 
@@ -1601,12 +1652,12 @@ td a:hover{color:var(--accent)}
         <a href="javascript:void(0)" onclick="document.getElementById('advancedSettings').style.display=document.getElementById('advancedSettings').style.display==='none'?'block':'none';this.textContent=document.getElementById('advancedSettings').style.display==='none'?'展开 ▼':'收起 ▲'" style="font-size:12px;color:var(--accent);">展开 ▼</a>
         <div id="advancedSettings" style="display:none;margin-top:12px;">
 
-          <h4 style="font-size:13px;margin:12px 0 6px;color:var(--text-2);">频率限制</h4>
+          <h4 style="font-size:15px;margin:12px 0 6px;color:var(--text-2);">频率限制</h4>
           <div class="setting-row"><label>每日投递上限</label><input type="number" id="setDailyLimit" value="15" min="1" max="30"></div>
           <div class="setting-row"><label>回复间隔(秒)</label><div style="display:flex;gap:6px;flex:1;align-items:center;"><input type="number" id="setMinDelay" value="30" min="10" max="300" style="flex:1;"><span style="color:var(--text-3);">—</span><input type="number" id="setMaxDelay" value="120" min="20" max="600" style="flex:1;"></span></div></div>
           <div style="font-size:11px;color:var(--text-3);margin:6px 0 -4px;padding:6px 10px;background:var(--bg-2);border-radius:var(--radius-sm);">💡 「公司去重」「HR 不活跃阈值」请到「岗位搜索」页面顶部开关配置，此处不再重复</div>
-          <h4 style="font-size:13px;margin:12px 0 6px;color:var(--text-2);">回复规则</h4>
-          <div class="setting-row"><label>自动回复</label><select id="setAutoReply"><option value="true">开启</option><option value="false">关闭</option></select></div>
+          <h4 style="font-size:15px;margin:12px 0 6px;color:var(--text-2);">回复规则</h4>
+          <div class="setting-row"><label>AI 自动回复</label><select id="setAutoReply"><option value="true">开启</option><option value="false">关闭</option></select></div>
           <div class="setting-row"><label>回复风格</label><select id="setStyle"><option value="professional">专业</option><option value="casual">轻松</option><option value="enthusiastic">热情</option></select></div>
           <div class="setting-row"><label>会话冷却(秒)</label><input type="number" id="setConversationCooldown" value="60" min="10" max="600"></div>
           <div class="setting-row"><label>AI 回复提示词</label><textarea id="setReplyRules" rows="4" placeholder="留空使用默认规则" style="width:100%;"></textarea></div>
@@ -1639,7 +1690,7 @@ function switchTab(tab){
     if(on){t.style.animation='none';t.offsetHeight;t.style.animation='';t.classList.add('active');}
     else{t.classList.remove('active');}
   });
-  document.getElementById('pageTitle').textContent={search:'岗位搜索',applications:'投递记录',chat:'聊天',wechat:'微信记录',settings:'设置'}[tab]||'';
+  document.getElementById('pageTitle').textContent={search:'岗位搜索',applications:'岗位列表',chat:'聊天回复',wechat:'微信记录',settings:'设置'}[tab]||'';
   if(tab==='applications'){loadApplications();refreshStatus();}
   if(tab==='chat')loadConversations();
   if(tab==='wechat'){loadWechatExchanges();startWechatAutoRefresh();}else{stopWechatAutoRefresh();}
@@ -1726,6 +1777,8 @@ function handleWS(msg){
     case'session_expired':document.getElementById('sessionStatus').textContent='登录已过期';toast('登录已过期','error');break;
     case'relogin_ok':document.getElementById('sessionStatus').textContent='登录态正常';toast('登录成功','success');break;
     case'wechat_exchanged':if(activeTab==='wechat')loadWechatExchanges();break;
+    case'applications_cleared':loadApplications();refreshStatus();toast('岗位列表已清空','success');break;
+    case'conversations_cleared':loadConversations();activeConvId=null;document.getElementById('chatMessages').innerHTML='<div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div>';document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name"><span class="status-dot"></span>选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';document.getElementById('btnManualSend').disabled=true;refreshStatus();toast('聊天记录已清空','success');break;
     case'monitor_paused':case'monitor_resumed':case'system':refreshStatus();break;
   }
 }
@@ -1743,7 +1796,7 @@ function refreshStatus(){
     animateNumber(document.getElementById('statTotalJobs'),d.total_jobs||0);
     animateNumber(document.getElementById('statToday'),d.applied||0);
     animateNumber(document.getElementById('statFiltered'),d.filtered||0);
-    // 聊天页统计卡片：收到回复(24h) + 面试/微信(全量)
+    // 聊天页统计卡片：需要回复(24h) + 面试/微信(全量)
     animateNumber(document.getElementById('chatStatReplied'),d.replied||0);
     animateNumber(document.getElementById('chatStatInterview'),d.interview||0);
   }).catch(()=>{});
@@ -1755,7 +1808,7 @@ function renderFunnel(d){
   // 搜索页「搜索过滤」用会话级变量，和「当前待投递」「当前已投递」逻辑一致
   el.innerHTML='<div class="funnel-card"><div class="num" data-key="pending" id="funnelPending">'+sessionSearchPending+'</div><div class="lbl">当前待投递</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="today" id="funnelApplied">'+sessionSearchApplied+'</div><div class="lbl">当前已投递</div></div>'
-    +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">收到回复</div></div>'
+    +'<div class="funnel-card"><div class="num" data-key="replied">'+(d.replied||0)+'</div><div class="lbl">需要回复</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="interview">'+(d.interview||0)+'</div><div class="lbl">面试/微信</div></div>'
     +'<div class="funnel-card"><div class="num" data-key="filtered" id="funnelFiltered">'+sessionSearchFiltered+'</div><div class="lbl">搜索过滤</div></div>';
 }
@@ -1847,7 +1900,7 @@ function loadJobs(){fetch('/api/jobs?limit=50').then(r=>r.json()).then(d=>{curre
 function renderJobs(jobs){
   const grid=document.getElementById('jobsGrid');
   if(!jobs||!jobs.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">📭</div>暂无岗位</div>';let fp=document.getElementById('funnelPending');if(fp)animateNumber(fp,sessionSearchPending);animateNumber(document.getElementById('metaJobsJobs')||document.getElementById('metaJobs'),0);return;}
-  const sl={pending:'待投递',applied:'已投递',replied:'收到回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
+  const sl={pending:'待投递',applied:'已投递',replied:'需要回复',skipped:'已跳过',failed:'失败',filtered:'已过滤',missing_url:'缺少链接'};
   const sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered',missing_url:'badge-missing_url'};
   const inactiveDaysEl=document.getElementById('inactiveDays');
   const inactiveThreshold=inactiveDaysEl?parseInt(inactiveDaysEl.value||'7',10):7;
@@ -1978,7 +2031,7 @@ function renderAppPage(){
   if(appCurrentPage>totalPages)appCurrentPage=totalPages;
   let page=appAllJobs.slice(start,start+APP_PAGE_SIZE);
   if(!total){tbody.innerHTML='<tr><td colspan="6" class="empty">暂无记录</td></tr>';document.getElementById('appPagination').innerHTML='';return;}
-  let sl={pending:'待投递',applied:'已投递',replied:'收到回复',skipped:'已跳过',failed:'失败',filtered:'已过滤'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered'};
+  let sl={pending:'待投递',applied:'已投递',replied:'需要回复',skipped:'已跳过',failed:'失败',filtered:'已过滤'},sb={pending:'badge-pending',applied:'badge-applied',replied:'badge-replied',skipped:'badge-skipped',failed:'badge-failed',filtered:'badge-filtered'};
   tbody.innerHTML=page.map(j=>{let s=j.status||'pending';return'<tr><td><a href="'+attr(j.job_url)+'" target="_blank">'+esc(j.job_title||j.title||'未知')+'</a></td><td>'+esc(j.company||'')+'</td><td>'+esc(j.salary||'')+'</td><td>'+esc(j.city||'')+'</td><td><span class="badge '+sb[s]+'">'+sl[s]+'</span></td><td>'+(j.job_url?'<button class="btn btn-sm btn-primary" onclick="applyOne(\''+attr(j.job_url)+'\',this)">投递</button>':'')+'</td></tr>';}).join('');
   document.getElementById('appPagination').innerHTML='<button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage=1;renderAppPage()">«</button><button '+(appCurrentPage<=1?'disabled':'')+' onclick="appCurrentPage--;renderAppPage()">‹</button><span>'+(start+1)+'-'+Math.min(start+APP_PAGE_SIZE,total)+' / '+total+'</span><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage++;renderAppPage()">›</button><button '+(appCurrentPage>=totalPages?'disabled':'')+' onclick="appCurrentPage=appTotalPages;renderAppPage()">»</button>';
 }
@@ -2007,7 +2060,7 @@ function loadConversations(){
       return'<div class="chat-list-item'+(activeConvId===c.id?' active':'')+'" onclick="selectConversation('+c.id+')">'
         +'<div class="chat-avatar">'+esc(initial)+'</div>'
         +'<div class="info">'
-        +'<div class="name-row"><div class="name">'+esc(c.hr_name||'未知')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
+        +'<div class="name-row"><div class="name">'+esc(c.hr_name||'未知')+(c.last_message_from==='hr'&&Date.now()-new Date(c.last_message_at).getTime()<86400000?'<span class="reply-dot"></span>':'')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
         +'<div class="preview">'+esc((c.last_message_text||'').slice(0,40))+'</div>'
         +'<div class="meta-line">'+esc(c.hr_company||'')+' · '+esc((c.job_title||'').slice(0,15))+'</div>'
         +'</div></div>';
@@ -2026,8 +2079,7 @@ function selectConversation(id){
     +'<div class="company">'+esc(conv.hr_company||'')+' · '+esc((conv.job_title||'').slice(0,20))+'</div>'
     +'</div></div>'
     +'<div class="header-right">'
-    +'<button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()">'+(conv.auto_reply_enabled?'暂停AI':'开启AI')+'</button>'
-    +'<button class="btn btn-sm btn-primary" id="btnManualSend" onclick="sendManualMessage()">发送</button>'
+    +'<button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()">'+(conv.auto_reply_enabled?'暂停当前自动回复':'开启当前自动回复')+'</button>'
     +'</div>';
   document.getElementById('btnManualSend').disabled=false;
   document.getElementById('btnAutoReplyToggle').disabled=false;
@@ -2069,9 +2121,50 @@ function toggleAutoReply(){
   if(!activeConvId)return;let conv=conversations.find(c=>c.id===activeConvId);if(!conv)return;
   const willEnable=!conv.auto_reply_enabled;
   const endpoint=willEnable?'/api/conversations/'+activeConvId+'/resume':'/api/conversations/'+activeConvId+'/pause';
-  fetch(endpoint,{method:'POST'}).then(r=>r.json()).then(()=>{loadConversations().then(()=>selectConversation(activeConvId));toast(willEnable?'AI已开启':'AI已暂停',willEnable?'success':'info');});
+  fetch(endpoint,{method:'POST'}).then(r=>r.json()).then(()=>{loadConversations().then(()=>selectConversation(activeConvId));toast(willEnable?'当前自动回复已开启':'当前自动回复已暂停',willEnable?'success':'info');});
 }
-function navigateBrowserToChat(){fetch('/api/system/navigate-chat',{method:'POST'}).then(()=>toast('已导航到聊天页','info',1500)).catch(()=>toast('导航失败','error'));}
+
+
+/* ── 清空数据确认弹窗 ── */
+function _showConfirmModal(icon,title,desc,onConfirm){
+  const id='confirmModal_'+Date.now();
+  const overlay=document.createElement('div');
+  overlay.className='analyze-modal-overlay confirm-modal';
+  overlay.id=id;
+  overlay.innerHTML='<div class="modal-box">'
+    +'<div class="confirm-icon">'+icon+'</div>'
+    +'<div class="confirm-title">'+title+'</div>'
+    +'<div class="confirm-desc">'+desc+'</div>'
+    +'<div class="confirm-actions">'
+    +'<button class="btn btn-sm" onclick="document.getElementById(\''+id+'\').remove()">取消</button>'
+    +'<button class="btn btn-sm btn-danger" id="'+id+'_ok">确认清空</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#'+id+'_ok').onclick=function(){overlay.remove();onConfirm();};
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+}
+function confirmClearApplications(){
+  _showConfirmModal('⚠️','清空岗位列表','此操作将删除所有岗位列表记录（含收藏）<br /><b>不可恢复，确定要清空吗？</b>',function(){
+    fetch('/api/applications/clear',{method:'POST'}).then(r=>{
+      if(!r.ok) return r.json().then(j=>Promise.reject(j.detail||'请求失败 ('+r.status+')'));
+      return r.json();
+    }).then(d=>{loadApplications();refreshStatus();toast('已清空 '+(d.deleted||0)+' 条岗位记录','success');}).catch(e=>toast('清空失败: '+e,'error'));
+  });
+}
+function confirmClearConversations(){
+  _showConfirmModal('⚠️','清空聊天页数据','此操作将删除所有聊天页会话和消息记录（仅当前页面）<br /><b>不可恢复，确定要清空吗？</b>',function(){
+    fetch('/api/conversations/clear',{method:'POST'}).then(r=>{
+      if(!r.ok) return r.json().then(j=>Promise.reject(j.detail||'请求失败 ('+r.status+')'));
+      return r.json();
+    }).then(d=>{
+      activeConvId=null;loadConversations();
+      document.getElementById('chatMessages').innerHTML='<div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div>';
+      document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name"><span class="status-dot"></span>选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';
+      document.getElementById('btnManualSend').disabled=true;
+      refreshStatus();toast('已清空 '+(d.deleted||0)+' 个聊天会话','success');
+    }).catch(e=>toast('清空失败: '+e,'error'));
+  });
+}
 
 function loadWechatExchanges(){
   fetch('/api/wechat-exchanges').then(r=>r.json()).then(d=>{

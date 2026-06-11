@@ -943,5 +943,26 @@ def is_in_shortlist(job_url: str) -> bool:
     return row["cnt"] > 0 if row else False
 
 
+def clear_all_applications() -> int:
+    """清空所有岗位列表（applications + shortlists），返回删除行数。"""
+    db = get_db()
+    app_count = db.execute("SELECT COUNT(*) as cnt FROM applications").fetchone()["cnt"]
+    short_count = db.execute("SELECT COUNT(*) as cnt FROM shortlists").fetchone()["cnt"]
+    db.execute("DELETE FROM applications")
+    db.execute("DELETE FROM shortlists")
+    db.commit()
+    return app_count + short_count
+
+
+def clear_all_conversations() -> int:
+    """清空所有聊天数据（conversations + messages），返回删除行数。"""
+    db = get_db()
+    conv_count = db.execute("SELECT COUNT(*) as cnt FROM conversations").fetchone()["cnt"]
+    db.execute("DELETE FROM messages")
+    db.execute("DELETE FROM conversations")
+    db.commit()
+    return conv_count
+
+
 # 启动时初始化
 init_db()
