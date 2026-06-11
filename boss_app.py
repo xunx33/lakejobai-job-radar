@@ -762,17 +762,16 @@ async def search_jobs(req: SearchRequest):
 
         # ── 前端 code → boss_firefox.search() 参数映射 ──
 
-        # job_type: 前端 "1"=全职, "2"=兼职 → search() 需要 "full"/"part"/"practice"
-        _JOB_TYPE_MAP = {"1": "full", "2": "part", "3": "practice",
-                         "full": "full", "part": "part", "practice": "practice"}
-        job_type_resolved = _JOB_TYPE_MAP.get((req.job_type or ""), "")
+        # job_type: 前端发 "1"=全职, "2"=兼职, "3"=实习
+        # BOSS URL 的 jobType 参数用数字 code, 不是 full/part/practice
+        # 直接透传数字 code, search() 内部会处理兼容
+        job_type_code = req.job_type or ""
 
-        # salary: 前端发 BOSS 薪资 code (402-407), 直接透传给 search() 的 salary 参数
-        # boss_firefox.search() 的 salary_code_map 是 {3:"403", 5:"404", 10:"405", 20:"406", 50:"407"}
-        # 但前端已经发的是 BOSS code, 不需要再用 salary_min/salary_max 做转换
+        # salary: 前端发 BOSS 薪资 code (402-407), 直接透传
         salary_code = req.salary or ""
 
-        # degree → edu: 前端发 degree code, 直接作为 BOSS URL 的 edu 参数
+        # degree → edu: 前端发 degree code, 映射到 search() 的 edu 参数
+        # search() 内部会将 edu 映射到 BOSS URL 的 degree 参数名
         # 前端: 209=初中及以下, 208=中专, 206=高中, 202=大专, 203=本科, 204=硕士, 205=博士
         edu_code = req.degree
 
@@ -783,7 +782,7 @@ async def search_jobs(req: SearchRequest):
             jobs = await _run_pw(
                 automation.search,
                 req.keyword, city_code,
-                job_type=job_type_resolved,
+                job_type=job_type_code,
                 salary=salary_code,
                 experience=req.experience,
                 edu=edu_code,

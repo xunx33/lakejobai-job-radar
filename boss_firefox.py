@@ -21,6 +21,7 @@ import random
 import re
 import sys
 import time
+import logging
 from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
@@ -446,6 +447,9 @@ def parse_hr_active(text: str) -> dict:
 # ══════════════════════════════════════
 
 
+log = logging.getLogger(__name__)
+
+
 class BossScraper:
     def __init__(self, headless=False):
         self.headless = headless
@@ -667,27 +671,26 @@ class BossScraper:
         self,
         keyword,
         city_code="100010000",
-        job_type: str = "",       # full=全职, part=兼职, practice=实习, ''=不限
+        job_type: str = "",       # "1"=全职, "2"=兼职, "3"=实习, 或 "full"/"part"/"practice" 兼容, ''=不限
         salary: str = "",         # BOSS 薪资 code 直传, 如 "405"=10-20K
         salary_min: Optional[int] = None,  # K 单位 (旧接口兼容)
         salary_max: Optional[int] = None,
         experience: Optional[int] = None,  # 经验 code
-        edu: Optional[int] = None,         # 学历 code
+        edu: Optional[int] = None,         # 学历 code (内部参数名, URL 映射为 degree)
         scale: Optional[int] = None,      # 公司规模 code
         stage: Optional[int] = None,      # 融资阶段 code
     ):
         """搜索关键词，返回岗位列表。
 
-        BOSS 直聘搜索 URL 参数:
+        BOSS 直聘搜索 URL 参数 (经多个 GitHub 爬虫项目验证):
         - query=     搜索关键词
         - city=      城市 code
+        - jobType=   岗位类型 (1=全职, 2=兼职, 3=实习, 注意: BOSS URL 用数字, 不是 full/part)
+        - salary=    薪资 (BOSS code: 402=3K以下, 403=3-5K, 404=5-10K, 405=10-20K, 406=20-50K, 407=50K以上)
+        - degree=    学历 (202=大专, 203=本科, 204=硕士, 205=博士, 206=高中, 208=中专, 209=初中及以下)
         - experience= 经验 (102=应届, 103=1年内, 104=1-3年, 105=3-5年, 106=5-10年, 107=10年以上, 108=在校)
-        - edu=       学历 (202=大专, 203=本科, 204=硕士, 205=博士, 206=高中, 208=中专, 209=初中及以下)
         - scale=     公司规模 (301=0-20, 302=20-99, 303=100-499, 304=500-999, 305=1000-9999, 306=10000以上)
         - stage=     融资阶段 (801=未融资, 802=天使轮, 803=A轮, 804=B轮, 805=C轮, 806=D轮及以上, 807=已上市, 808=不需要融资)
-        - positionType= 岗位类型数字 (1=全职, 2=兼职, 3=实习)
-        - jobType=   岗位类型字符串 (full=全职, part=兼职, practice=实习)
-        - salary=    薪资 (BOSS code: 402=3K以下, 403=3-5K, 404=5-10K, 405=10-20K, 406=20-50K, 407=50K以上)
         """
         t0 = time.time()
 
@@ -705,24 +708,27 @@ class BossScraper:
             "query": keyword,
             "city": city_code,
         }
-        # 同时传 positionType (数字) 和 jobType (字符串), 兼容 BOSS 新旧版本
+        # jobType: BOSS URL 只认 jobType 参数 (数字 code: 1=全职, 2=兼职, 3=实习)
+        # positionType 参数不存在于 BOSS 实际 URL 中, 之前传了是错的
         if job_type:
-            type_map_legacy = {"full": "full", "part": "part", "practice": "practice"}
-            type_map_new = {"full": "1", "part": "2", "practice": "3"}
-            params["positionType"] = type_map_new.get(job_type, job_type)
-            params["jobType"] = type_map_legacy.get(job_type, job_type)
+            # 兼容两种格式: 数字 "1"/"2"/"3" 或字符串 "full"/"part"/"practice"
+            _type_num_map = {"full": "1", "part": "2", "practice": "3",
+                             "1": "1", "2": "2", "3": "3"}
+            params["jobType"] = _type_num_map.get(job_type, job_type)
         if salary:
             params["salary"] = salary
         if experience is not None:
             params["experience"] = str(experience)
+        # BOSS URL 参数名是 degree, 不是 edu (多个 GitHub 爬虫项目验证)
         if edu is not None:
-            params["edu"] = str(edu)
+            params["degree"] = str(edu)
         if scale is not None:
             params["scale"] = str(scale)
         if stage is not None:
             params["stage"] = str(stage)
 
         url = "https://www.zhipin.com/web/geek/job?" + urlencode(params)
+        log.info(f"搜索URL: {url}")
         self.page.goto(url, wait_until="domcontentloaded", timeout=45000)
         loaded_count = self._wait_for_jobs_loaded(min_count=10, max_wait_s=15)
         t_wait = time.time() - t0
