@@ -1516,7 +1516,6 @@ td a:hover{color:var(--accent)}
       <div class="stats-grid">
         <div class="stat-card"><div class="num" id="statTotalJobs">0</div><div class="lbl">岗位列表</div></div>
         <div class="stat-card"><div class="num" id="statToday">0</div><div class="lbl">列表内投递</div></div>
-        <div class="stat-card"><div class="num" id="statReplied">0</div><div class="lbl">HR已回复</div></div>
         <div class="stat-card"><div class="num" id="statFiltered">0</div><div class="lbl">已过滤</div></div>
       </div>
       <div class="section" style="padding:16px 18px;">
@@ -1558,6 +1557,10 @@ td a:hover{color:var(--accent)}
           <div class="chat-messages" id="chatMessages"><div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div></div>
           <div class="chat-input-area"><textarea id="chatInput" placeholder="输入消息..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendManualMessage();}"></textarea></div>
         </div>
+      </div>
+      <div class="stats-grid" style="margin-top:14px;">
+        <div class="stat-card"><div class="num" id="chatStatReplied">0</div><div class="lbl">HR已回复</div></div>
+        <div class="stat-card"><div class="num" id="chatStatInterview">0</div><div class="lbl">面试</div></div>
       </div>
     </div>
 
@@ -1739,8 +1742,10 @@ function refreshStatus(){
     renderFunnel(d);
     animateNumber(document.getElementById('statTotalJobs'),d.total_jobs||0);
     animateNumber(document.getElementById('statToday'),d.applied||0);
-    animateNumber(document.getElementById('statReplied'),d.replied||0);
     animateNumber(document.getElementById('statFiltered'),d.filtered||0);
+    // 聊天页统计卡片：HR已回复（全量）+ 面试（全量）
+    animateNumber(document.getElementById('chatStatReplied'),d.chat_replied||0);
+    animateNumber(document.getElementById('chatStatInterview'),d.interview||0);
   }).catch(()=>{});
 }
 function renderFunnel(d){
