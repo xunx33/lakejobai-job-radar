@@ -1015,65 +1015,27 @@ class BossAutomation(BossScraper):
             return ''
 
     def read_chat_header_info(self) -> dict:
-        """读取当前聊天窗口头部岗位信息（第二行：岗位名 · 薪资 · 城市）。
+        """读取当前聊天窗口头部岗位信息。
 
-        策略：定位右侧聊天 header 容器 → 取文本 → 拆行 → 第二行就是「岗位 薪资 城市」。
-        不依赖具体 class 名，用通用文本解析，跟之前抓公司名的思路一致。
+        BOSS 直聘 DOM 结构（已确认）：
+          .chat-position-content > .position-main > .position-content > .left-content
+            > span.position-name   → 岗位名称（如"小红书运营"）
+            > span.salary         → 薪资（如"5-7K"）
+            > span.city           → 城市（如"广州"）
         """
         try:
             info = self.page.evaluate("""() => {
                 const result = { jobTitle: '', salary: '', city: '' };
 
-                // 1. 定位右侧聊天 header 区域（多种可能的选择器）
-                let headerEl = null;
-                const candidates = [
-                    '.chat-header', '.header-area', '.detail-header', '.info-area',
-                    '[class*="chat"] [class*="header"]', '[class*="chat"] [class*="info"]',
-                    '[class*="chat"] [class*="detail"]', '[class*="conversation-detail"]'
-                ];
-                for (const sel of candidates) {
-                    const el = document.querySelector(sel);
-                    if (el && el.getBoundingClientRect().width > 100) {
-                        headerEl = el;
-                        break;
-                    }
-                }
+                // 用精确的 class 选择器直接取值
+                const posName = document.querySelector('.position-content .position-name');
+                if (posName) result.jobTitle = (posName.innerText || '').trim();
 
-                // 2. 兜底：找右侧面板中包含"在线"文字的 header 容器
-                if (!headerEl) {
-                    const all = document.querySelectorAll('div, section, header');
-                    for (const el of all) {
-                        const text = (el.innerText || '').trim();
-                        // header 特征：短文本、包含"在线"、在页面右半边
-                        const rect = el.getBoundingClientRect();
-                        if (rect.width > 200 && rect.width < 600 &&
-                            text.length > 5 && text.length < 100 &&
-                            text.includes('在线') && rect.left > window.innerWidth * 0.35) {
-                            // 排除太深的容器（只要直接 header）
-                            if (el.children.length < 15) {
-                                headerEl = el;
-                                break;
-                            }
-                        }
-                    }
-                }
+                const sal = document.querySelector('.position-content .salary');
+                if (sal) result.salary = (sal.innerText || '').trim();
 
-                if (!headerEl) return result;
-
-                // 3. 提取 header 文本，按换行分割
-                const fullText = (headerEl.innerText || '').trim();
-                const lines = fullText.split('\\n').map(l => l.trim()).filter(l => l);
-
-                if (lines.length >= 2) {
-                    // 第二行就是：岗位名  薪资  城市（如 "小红书运营  5-7K  广州"）
-                    const line2 = lines[1];
-                    // 用空格/中间点/竖线等分隔符拆分
-                    const parts = line2.split(/[\\s·|\\|\\/]+/).filter(p => p.trim());
-
-                    if (parts.length >= 1) result.jobTitle = parts[0].trim();
-                    if (parts.length >= 2) result.salary = parts[1].trim();
-                    if (parts.length >= 3) result.city = parts[2].trim();
-                }
+                const city = document.querySelector('.position-content .city');
+                if (city) result.city = (city.innerText || '').trim();
 
                 return result;
             }""")
