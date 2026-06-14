@@ -2381,12 +2381,8 @@ function selectConversation(id){
   activeConvId=id;loadConversations();loadMessages(id);
   let conv=conversations.find(c=>c.id===id);if(!conv)return;
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
-  // 公司名/职位/岗位名：后端已用精确 DOM class 提取，前端直接显示
-  let company=conv.hr_company||'';
-  let title=conv.hr_title||'';
-  // 仅做最基本的防护：过滤空值和纯数字
-  if(/^\d+$/.test(company))company='';
-  if(/^\d+$/.test(title))title='';
+  // 只保留岗位名（后端从 .position-name 精确 class 提取）
+  const jobTitle=conv.job_title||'';
   document.getElementById('chatHeader').innerHTML=
     '<div class="header-left">'
     +'<div class="chat-avatar" style="width:32px;height:32px;font-size:12px;">'+esc(initial)+'</div>'
@@ -2395,8 +2391,8 @@ function selectConversation(id){
     +'<div class="name-row"><span class="name">'+esc(conv.hr_name||'未知')+'</span>'
     +(conv.online_status?'<span class="online-badge'+(conv.online_status==='离线'?' offline':'')+'">'+esc(conv.online_status)+'</span>':'')
     +'</div>'
-    /* 第二行：公司名 | 招聘者职位 | 岗位名（去重去噪，只保留有效信息） */
-    +'<div class="job-row">'+(company?esc(company):'')+(company&&title?' · ':'')+(title?esc(title):'')+((company||title)&&conv.job_title?' ｜ ':'')+(conv.job_title?esc(conv.job_title):'')+'</div>'
+    /* 第二行：岗位名（来自 .position-name 精确提取） */
+    +(jobTitle?'<div class="job-row">'+esc(jobTitle)+'</div>':'')
     +'</div></div>'
     +'<div class="header-right">'
     +'<button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()">'+(conv.auto_reply_enabled?'暂停当前自动回复':'开启当前自动回复')+'</button>'
