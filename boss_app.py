@@ -1876,7 +1876,10 @@ async def sync_conversation_messages(conv_id: int):
             live_messages = await asyncio.wait_for(_run_pw(automation.read_visible_messages), timeout=5)
             online_status = await asyncio.wait_for(_run_pw(automation.read_chat_online_status), timeout=3)
             header_info = await asyncio.wait_for(_run_pw(automation.read_chat_header_info), timeout=3)
-            print(f"  [同步] {hr_name} header_info: company={header_info.get('company')}, title={header_info.get('title')}, online={online_status}")
+            _jt = (header_info.get('jobTitle') or '').strip()
+            _sal = (header_info.get('salary') or '').strip()
+            _city = (header_info.get('city') or '').strip()
+            print(f"  [同步] {hr_name} 岗位={_jt}, 薪资={_sal}, 城市={_city}, 在线={online_status}")
             if live_messages:
                 replace_conversation_messages(conv_id, live_messages)
                 # 更新在线状态和公司信息
@@ -1888,12 +1891,15 @@ async def sync_conversation_messages(conv_id: int):
                     if online_status:
                         updates.append("online_status=?")
                         params.append(online_status)
-                    if header_info.get('company') and not conv.get('hr_company'):
-                        updates.append("hr_company=?")
-                        params.append(header_info['company'])
-                    if header_info.get('title') and not conv.get('hr_title'):
-                        updates.append("hr_title=?")
-                        params.append(header_info['title'])
+                    if _jt:
+                        updates.append("job_title=?")
+                        params.append(_jt)
+                    if _sal:
+                        updates.append("salary=?")
+                        params.append(_sal)
+                    if _city:
+                        updates.append("city=?")
+                        params.append(_city)
                     if updates:
                         params.append(conv_id)
                         db.execute(f"UPDATE conversations SET {', '.join(updates)} WHERE id=?", params)

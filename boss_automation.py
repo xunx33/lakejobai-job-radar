@@ -1015,73 +1015,29 @@ class BossAutomation(BossScraper):
             return ''
 
     def read_chat_header_info(self) -> dict:
-        """读取当前聊天窗口头部岗位信息。
+        """读取当前聊天窗口头部岗位信息（岗位名 · 薪资 · 城市）。
 
-        BOSS 直聘 DOM 结构：
-          .position-content 内包含 .position-name / .salary / .city
-        先做诊断输出，确认选择器是否能命中。
+        BOSS 直聘 DOM 结构（已验证）：
+          .position-content > .position-name → 岗位名
+          .position-content > .salary     → 薪资
+          .position-content > .city       → 城市
         """
         try:
             info = self.page.evaluate("""() => {
-                const result = { jobTitle: '', salary: '', city: '', _debug: '' };
-
-                // 诊断1：查 .position-content 是否存在，输出其 innerText
-                const pc = document.querySelector('.position-content');
-                if (pc) {
-                    result._debug += 'position-content存在, text=' + (pc.innerText||'').trim().slice(0,80) + '; ';
-                } else {
-                    result._debug += 'position-content不存在; ';
-                }
-
-                // 诊断2：查 .position-name 是否存在
+                const result = { jobTitle: '', salary: '', city: '' };
                 const pn = document.querySelector('.position-name');
-                if (pn) {
-                    result._debug += 'position-name存在, text=' + (pn.innerText||'').trim().slice(0,40) + '; ';
-                    result.jobTitle = (pn.innerText || '').trim();
-                } else {
-                    result._debug += 'position-name不存在; ';
-                }
-
-                // 诊断3：查 .salary 是否存在
+                if (pn) result.jobTitle = (pn.innerText || '').trim();
                 const sal = document.querySelector('.salary');
-                if (sal) {
-                    result._debug += 'salary存在, text=' + (sal.innerText||'').trim().slice(0,20) + '; ';
-                    result.salary = (sal.innerText || '').trim();
-                } else {
-                    result._debug += 'salary不存在; ';
-                }
-
-                // 诊断4：查 .city 是否存在
+                if (sal) result.salary = (sal.innerText || '').trim();
                 const cityEl = document.querySelector('.city');
-                if (cityEl) {
-                    result._debug += 'city存在, text=' + (cityEl.innerText||'').trim().slice(0,20) + '; ';
-                    result.city = (cityEl.innerText || '').trim();
-                } else {
-                    result._debug += 'city不存在; ';
-                }
-
-                // 诊断5：如果上面都取不到，扫描整个页面中所有含 position/salary/city 的 class
-                if (!result.jobTitle && !result.salary && !result.city) {
-                    const allEls = document.querySelectorAll('[class*="position"], [class*="salary"], [class*="city"]');
-                    const found = [];
-                    allEls.forEach(el => {
-                        const t = (el.innerText || '').trim().slice(0, 30);
-                        if (t && t.length < 50) found.push('.' + el.className.split(' ').join('.') + '=>' + t);
-                    });
-                    result._debug += '全页扫描: ' + found.join(' | ');
-                }
-
+                if (cityEl) result.city = (cityEl.innerText || '').trim();
                 return result;
             }""")
-
-            _debug = info.get('_debug', '') if info else ''
             job_title = (info.get('jobTitle') or '') if info else ''
             salary = (info.get('salary') or '') if info else ''
             city = (info.get('city') or '') if info else ''
-
-            print(f"  [header诊断] {_debug}")
-            print(f"  [header结果] 岗位={job_title!r}, 薪资={salary!r}, 城市={city!r}")
-
+            if any([job_title, salary, city]):
+                print(f"  [header] 岗位={job_title}, 薪资={salary}, 城市={city}")
             return info or {'jobTitle': '', 'salary': '', 'city': ''}
         except Exception as e:
             print(f"  ⚠️ read_chat_header_info 异常: {e}")
