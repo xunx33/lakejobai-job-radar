@@ -1735,6 +1735,20 @@ class BossAutomation(BossScraper):
                     except Exception:
                         pass
 
+            # 补充更新岗位名（已有会话但 job_title 为空时从 DOM 填充）
+            if not matched_conv.get("job_title") and conv_data.get("job_title"):
+                _jt = conv_data["job_title"].strip()
+                if len(_jt) >= 2 and len(_jt) <= 30 and not _jt.isdigit():
+                    try:
+                        from boss_state import get_db as _gdb4
+
+                        _gdb4().execute("UPDATE conversations SET job_title=? WHERE id=?", (_jt, conv_id))
+                        _gdb4().commit()
+                        matched_conv["job_title"] = _jt
+                        print(f"  [监控] 提取岗位名: {_jt}")
+                    except Exception:
+                        pass
+
             if matched_conv.get("status") != "active":
                 continue
             if not matched_conv.get("auto_reply_enabled"):

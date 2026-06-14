@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BOSS直聘自动化控制台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤝</text></svg>">
+<title>BOSS 直聘自动化控制台</title>
 <style>
 :root{
-  --accent:#ec4899;
-  --accent-2:#f472b6;
-  --accent-3:#f9a8d4;
-  --accent-soft:rgba(236,72,153,.12);
-  --accent-soft-2:rgba(236,72,153,.06);
-  --accent-glow:rgba(236,72,153,.35);
+  --accent:#0ea5e9;
+  --accent-2:#38bdf8;
+  --accent-3:#7dd3fc;
+  --accent-soft:rgba(14,165,233,.12);
+  --accent-soft-2:rgba(14,165,233,.06);
+  --accent-glow:rgba(14,165,233,.35);
 
   --green:#22c55e;
   --green-soft:rgba(34,197,94,.12);
@@ -22,24 +23,24 @@
   --blue:#3b82f6;
   --blue-soft:rgba(59,130,246,.12);
 
-  --bg:#0a0a0a;
-  --bg-1:#0f0f10;
-  --bg-2:#141416;
-  --bg-3:#1a1a1d;
-  --bg-4:#222226;
+  --bg:#111318;
+  --bg-1:#161921;
+  --bg-2:#1c2029;
+  --bg-3:#232832;
+  --bg-4:#2c3240;
 
-  --border:#26262a;
-  --border-2:#33333a;
-  --border-strong:#3f3f46;
+  --border:#2a2f3a;
+  --border-2:#383e4c;
+  --border-strong:#4a5163;
 
-  --text:#fafafa;
-  --text-2:#a1a1aa;
-  --text-3:#71717a;
-  --text-4:#52525b;
+  --text:#f1f5f9;
+  --text-2:#94a3b8;
+  --text-3:#64748b;
+  --text-4:#475569;
 
-  --sidebar-bg:#0c0c0d;
-  --sidebar-active:rgba(236,72,153,.12);
-  --sidebar-border:rgba(255,255,255,.04);
+  --sidebar-bg:#111318;
+  --sidebar-active:rgba(14,165,233,.12);
+  --sidebar-border:rgba(255,255,255,.05);
 
   --radius:8px;
   --radius-sm:6px;
@@ -65,8 +66,8 @@ body{
   font-variant-numeric:tabular-nums;
   overflow:hidden;
   background-image:
-    radial-gradient(800px 400px at 0% 0%,rgba(236,72,153,.04),transparent 60%),
-    radial-gradient(600px 300px at 100% 100%,rgba(236,72,153,.03),transparent 60%);
+    radial-gradient(800px 400px at 0% 0%,rgba(14,165,233,.04),transparent 60%),
+    radial-gradient(600px 300px at 100% 100%,rgba(14,165,233,.03),transparent 60%);
   background-attachment:fixed;
 }
 
@@ -101,7 +102,7 @@ body{
 .sidebar-logo .logo-mark{
   width:28px;height:28px;
   border-radius:7px;
-  background:linear-gradient(135deg,var(--accent) 0%,#db2777 100%);
+  background:linear-gradient(135deg,var(--accent) 0%,#0284c7 100%);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -154,7 +155,7 @@ body{
 .sidebar-nav a.active{
   color:var(--text);
   background:var(--sidebar-active);
-  border-color:rgba(236,72,153,.2);
+  border-color:rgba(14,165,233,.2);
 }
 .sidebar-nav a.active::after{
   content:"";
@@ -325,12 +326,12 @@ body{
   background:var(--accent);
   color:#fff;
   border-color:var(--accent);
-  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 4px 12px rgba(236,72,153,.2);
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 4px 12px rgba(14,165,233,.2);
 }
 .btn-primary:hover:not(:disabled){
   background:var(--accent-2);
   border-color:var(--accent-2);
-  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 6px 16px rgba(236,72,153,.3);
+  box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 6px 16px rgba(14,165,233,.3);
 }
 .btn-success{
   background:var(--green);
@@ -359,6 +360,7 @@ body{
   border-color:var(--border);
 }
 .btn-sm{padding:5px 10px;font-size:12px}
+.filter-btn-active{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important;box-shadow:0 0 8px rgba(14,165,233,.3);}
 .btn-xs{padding:3px 8px;font-size:11px;border-radius:5px}
 .btn-icon{padding:6px;width:28px;height:28px;justify-content:center}
 
@@ -368,7 +370,7 @@ body{
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
   margin-bottom:14px;
-  overflow:hidden;
+  overflow:visible;
 }
 .search-row{
   display:flex;
@@ -376,6 +378,7 @@ body{
   flex-wrap:wrap;
   padding:12px 14px;
   align-items:center;
+  position:relative;
 }
 .search-row + .search-row{
   border-top:1px solid var(--border);
@@ -408,7 +411,7 @@ body{
 
 .search-input{
   flex:1;
-  min-width:160px;
+  min-width:280px;
   background:var(--bg-2);
   border:1px solid var(--border);
   padding:8px 12px;
@@ -437,13 +440,50 @@ body{
   border-radius:var(--radius-sm);
   cursor:pointer;
   transition:all .12s var(--ease);
-  min-width:100px;
+  min-width:80px;
+  flex-shrink:0;
 }
 .search-select:hover{border-color:var(--border-2)}
 .search-select:focus{
   border-color:var(--accent);
   box-shadow:0 0 0 3px var(--accent-soft);
 }
+.city-dropdown{position:relative;min-width:100px;flex-shrink:0;}
+.city-trigger{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  background:var(--bg-2);border:1px solid var(--border);padding:8px 10px;
+  color:var(--text);font-size:12px;font-family:var(--font);border-radius:var(--radius-sm);
+  cursor:pointer;transition:all .12s var(--ease);outline:none;
+}
+.city-trigger:hover{border-color:var(--border-2)}
+.city-trigger:focus,.city-dropdown.open .city-trigger{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+.city-arrow{font-size:10px;opacity:.5;transition:transform .2s;flex-shrink:0;}
+.city-dropdown.open .city-arrow{transform:rotate(180deg);}
+.city-panel{
+  display:none;position:fixed;z-index:9999;
+  width:224px;max-height:350px;overflow-y:auto;
+  background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px 0;
+}
+.city-dropdown.open .city-panel{display:block;}
+.city-group-head{
+  display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:12px;font-weight:600;
+  color:var(--text-2);cursor:pointer;user-select:none;transition:background .1s;
+}
+.city-group-head:hover{background:var(--bg-2);}
+.city-group-arrow{font-size:10px;transition:transform .2s;flex-shrink:0;width:12px;text-align:center;}
+.city-group.open .city-group-arrow{transform:rotate(90deg);}
+.city-group-body{display:none;padding:2px 0 4px;}
+.city-group.open .city-group-body{display:flex;flex-wrap:wrap;gap:2px;padding:2px 8px 6px;}
+.city-opt{
+  padding:5px 10px;font-size:12px;color:var(--text);cursor:pointer;border-radius:var(--radius-sm);
+  transition:all .1s;white-space:nowrap;position:relative;
+}
+.city-opt:hover{background:var(--accent);color:#fff;}
+.city-opt.active{background:var(--accent);color:#fff;font-weight:600;}
+.city-opt.selected{background:rgba(14,165,233,.18);color:var(--accent);font-weight:600;position:relative;}
+.city-opt.selected::after{content:'✓';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;}
+.city-opt-standalone{margin:2px 8px 6px;font-weight:500;}
 .search-actions{
   display:flex;
   gap:6px;
@@ -664,7 +704,7 @@ body{
   border:1px solid transparent;
 }
 .badge-pending{background:var(--bg-3);color:var(--text-2);border-color:var(--border-2)}
-.badge-applied{background:var(--accent-soft);color:var(--accent-2);border-color:rgba(236,72,153,.25)}
+.badge-applied{background:var(--accent-soft);color:var(--accent-2);border-color:rgba(14,165,233,.25)}
 .badge-replied{background:var(--green-soft);color:#4ade80;border-color:rgba(34,197,94,.25)}
 .badge-skipped{background:var(--bg-3);color:var(--text-3);border-color:var(--border)}
 .badge-failed{background:var(--red-soft);color:#f87171;border-color:rgba(239,68,68,.25)}
@@ -767,7 +807,7 @@ td a:hover{color:var(--accent)}
 .chat-avatar{
   width:36px;height:36px;
   border-radius:50%;
-  background:linear-gradient(135deg,var(--accent),#db2777);
+  background:linear-gradient(135deg,var(--accent),#0284c7);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -789,11 +829,26 @@ td a:hover{color:var(--accent)}
   font-size:13px;
   font-weight:600;
   color:var(--text);
+  flex:1;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  overflow:hidden;
+}
+.chat-list-item .name .name-text{
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-  flex:1;
+  flex-shrink:1;
   min-width:0;
+}
+.chat-list-item .name .job-inline{
+  font-size:11px;
+  font-weight:400;
+  color:var(--text-3);
+  flex-shrink:0;
+  white-space:nowrap;
 }
 .chat-list-item .name .reply-dot{
   display:inline-block;
@@ -809,14 +864,6 @@ td a:hover{color:var(--accent)}
   font-size:12px;
   color:var(--text-3);
   margin-top:3px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-.chat-list-item .meta-line{
-  font-size:10.5px;
-  color:var(--text-4);
-  margin-top:2px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
@@ -893,12 +940,49 @@ td a:hover{color:var(--accent)}
   gap:6px;
   flex-shrink:0;
 }
-.chat-header .status-dot{
-  width:6px;height:6px;
-  background:var(--green);
-  border-radius:50%;
-  box-shadow:0 0 6px rgba(34,197,94,.5);
-  flex-shrink:0;
+.online-badge{
+  display:inline-block;
+  font-size:11px;
+  padding:1px 6px;
+  border-radius:4px;
+  margin-left:6px;
+  vertical-align:middle;
+  background:rgba(34,197,94,.15);
+  color:#4ade80;
+  font-weight:500;
+}
+.online-badge.offline{
+  background:rgba(107,114,128,.15);
+  color:#9ca3af;
+}
+.chat-header .name-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.chat-header .name{
+  font-size:14px;
+  font-weight:600;
+  color:var(--text);
+}
+.chat-header .company-tag{
+  font-size:12px;
+  color:var(--text-2);
+}
+.chat-header .title-tag{
+  font-size:12px;
+  color:var(--text-3);
+}
+.chat-header .title-tag::before{
+  content:'|';
+  margin-right:8px;
+  color:var(--border-2);
+}
+.chat-header .job-row{
+  font-size:12px;
+  color:var(--text-2);
+  margin-top:2px;
 }
 .chat-messages{
   flex:1;
@@ -944,7 +1028,7 @@ td a:hover{color:var(--accent)}
   font-size:12px;
 }
 .msg-avatar.hr-av{background:linear-gradient(135deg,#52525b,#3f3f46)}
-.msg-avatar.me-av{background:linear-gradient(135deg,var(--accent),#db2777)}
+.msg-avatar.me-av{background:linear-gradient(135deg,var(--accent),#0284c7)}
 .msg-avatar.ai-av{background:linear-gradient(135deg,#475569,#1e293b);position:relative}
 .msg-avatar.ai-av::after{
   content:"AI";
@@ -974,10 +1058,10 @@ td a:hover{color:var(--accent)}
   border-radius:4px 12px 12px 12px;
 }
 .msg-row.me .msg-bubble{
-  background:linear-gradient(135deg,var(--accent) 0%,#db2777 100%);
+  background:linear-gradient(135deg,var(--accent) 0%,#0284c7 100%);
   color:#fff;
   border-radius:12px 4px 12px 12px;
-  box-shadow:0 4px 12px rgba(236,72,153,.25);
+  box-shadow:0 4px 12px rgba(14,165,233,.25);
 }
 .msg-row.me.ai .msg-bubble{
   background:linear-gradient(135deg,#3f3f46,#27272a);
@@ -1087,6 +1171,12 @@ td a:hover{color:var(--accent)}
   background:var(--bg-2);
 }
 .setting-row textarea{min-height:60px;resize:vertical;font-family:var(--mono);font-size:12px}
+#greetingTemplateRow textarea,#smartPromptRow textarea{height:110px}
+/* 只读提示词 textarea */
+.setting-row textarea[readonly]{background:var(--bg-3,#1a1a2e);opacity:.7;cursor:default;resize:none}
+.setting-textarea-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.prompt-edit-btn{align-self:flex-end;font-size:12px;color:var(--accent);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.25);border-radius:4px;cursor:pointer;padding:3px 12px;transition:all .15s}
+.prompt-edit-btn:hover{background:rgba(14,165,233,.18);border-color:var(--accent)}
 .setting-row input:focus,
 .setting-row textarea:focus,
 .setting-row select:focus{
@@ -1150,7 +1240,7 @@ td a:hover{color:var(--accent)}
 .spinner-lg{width:28px;height:28px;border-width:3px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-#searchStatus,#applyProgress{font-size:13px;line-height:1.6;color:var(--text-2)}
+#searchStatus,#applyProgress{font-size:13px;line-height:1.6;color:var(--text-2);margin-bottom:8px}
 
 /* ============ Modal ============ */
 .analyze-modal-overlay{
@@ -1211,6 +1301,51 @@ td a:hover{color:var(--accent)}
 }
 .confirm-modal .confirm-actions .btn{
   min-width:90px;
+}
+/* ── 气泡确认提示 ── */
+.popover-confirm{
+  position:fixed;
+  z-index:9999;
+  background:var(--bg-1);
+  border:1px solid var(--border-2);
+  border-radius:var(--radius);
+  padding:10px 12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.3);
+  animation:popoverIn .15s var(--ease-out);
+  display:inline-block;
+  max-width:280px;
+}
+.popover-confirm::before{
+  content:'';
+  position:absolute;
+  top:-5px;
+  right:12px;
+  width:8px;height:8px;
+  background:var(--bg-1);
+  border-top:1px solid var(--border-2);
+  border-left:1px solid var(--border-2);
+  transform:rotate(45deg);
+}
+@keyframes popoverIn{
+  from{opacity:0;transform:translateY(-4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.popover-confirm .pop-text{
+  font-size:12px;
+  color:var(--text-2);
+  margin-bottom:8px;
+  line-height:1.5;
+  text-align:right;
+  white-space:nowrap;
+}
+.popover-confirm .pop-actions{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+}
+.popover-confirm .pop-actions .btn{
+  padding:4px 10px;
+  font-size:11px;
 }
 .analyze-modal-overlay h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
 
@@ -1426,7 +1561,7 @@ td a:hover{color:var(--accent)}
       <div class="logo-mark">B</div>
       <div class="logo-text">
         <h1>BOSS 自动化控制台</h1>
-        <div>v3.0 Jeff优化版<br />job-radar</div>
+        <div>v3.0 · job-radar</div>
       </div>
     </div>
     <nav class="sidebar-nav" id="sideNav">
@@ -1461,97 +1596,186 @@ td a:hover{color:var(--accent)}
     <!-- Tab 1: Search -->
     <div class="tab active" id="tab-search">
       <div class="search-shell" id="searchShell">
-        <div class="search-row">
-          <input type="text" id="searchKeyword" placeholder="输入岗位关键词" class="search-input" style="min-width:200px;">
-          <select id="searchCity" class="search-select">
-            <optgroup label="山东省"><option value="济南">济南</option><option value="青岛">青岛</option><option value="淄博">淄博</option><option value="潍坊">潍坊</option><option value="烟台">烟台</option><option value="济宁">济宁</option><option value="临沂">临沂</option><option value="泰安">泰安</option><option value="威海">威海</option><option value="东营">东营</option><option value="滨州">滨州</option><option value="菏泽">菏泽</option><option value="枣庄">枣庄</option><option value="日照">日照</option><option value="聊城">聊城</option><option value="德州">德州</option></optgroup>
-            <optgroup label="一线城市"><option value="北京">北京</option><option value="上海">上海</option><option value="广州">广州</option><option value="深圳">深圳</option></optgroup>
-            <optgroup label="新一线"><option value="成都">成都</option><option value="杭州">杭州</option><option value="武汉">武汉</option><option value="南京">南京</option><option value="重庆">重庆</option><option value="西安">西安</option><option value="长沙">长沙</option><option value="天津">天津</option><option value="苏州">苏州</option><option value="郑州">郑州</option><option value="东莞">东莞</option><option value="沈阳">沈阳</option><option value="宁波">宁波</option><option value="昆明">昆明</option></optgroup>
-            <optgroup label="其他省会"><option value="合肥">合肥</option><option value="福州">福州</option><option value="厦门">厦门</option><option value="南昌">南昌</option><option value="贵阳">贵阳</option><option value="南宁">南宁</option><option value="太原">太原</option><option value="石家庄">石家庄</option><option value="哈尔滨">哈尔滨</option><option value="长春">长春</option><option value="兰州">兰州</option><option value="乌鲁木齐">乌鲁木齐</option><option value="呼和浩特">呼和浩特</option><option value="拉萨">拉萨</option><option value="西宁">西宁</option><option value="银川">银川</option><option value="海口">海口</option><option value="三亚">三亚</option></optgroup>
-            <option value="全国">全国</option>
-          </select>
-          <div class="search-actions">
-            <button class="btn btn-primary" id="btnSearch" onclick="doSearch()">搜索</button>
-            <button class="btn btn-primary" onclick="batchApplyAll(1)">一键投递</button>
-            <button class="btn btn-ghost btn-sm" onclick="batchApplyAll(5)" title="多页扫描+跳过已发公司+跳过HR不活跃">翻5页 ▸</button>
+        <div class="search-row" style="flex-wrap:nowrap;align-items:center;">
+          <div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;flex:1;">
+            <select id="searchSalary" class="search-select">
+              <option value="">薪资不限</option>
+              <option value="402">3K以下</option>
+              <option value="403">3-5K</option>
+              <option value="404">5-10K</option>
+              <option value="405">10-20K</option>
+              <option value="406">20-50K</option>
+              <option value="407">50K以上</option>
+            </select>
+            <select id="searchExperience" class="search-select">
+              <option value="">经验不限</option>
+              <option value="108">在校生</option>
+              <option value="102">应届生</option>
+              <option value="103">1年内</option>
+              <option value="104">1-3年</option>
+              <option value="105">3-5年</option>
+              <option value="106">5-10年</option>
+              <option value="107">10年以上</option>
+            </select>
+            <select id="searchDegree" class="search-select">
+              <option value="">学历不限</option>
+              <option value="209">初中及以下</option>
+              <option value="208">中专/中技</option>
+              <option value="206">高中</option>
+              <option value="202">大专</option>
+              <option value="203">本科</option>
+              <option value="204">硕士</option>
+              <option value="205">博士</option>
+            </select>
+            <select id="searchJobType" class="search-select">
+              <option value="">岗位类型</option>
+              <option value="1">全职</option>
+              <option value="2">兼职</option>
+            </select>
+            <select id="searchScale" class="search-select">
+              <option value="">公司规模</option>
+              <option value="301">0-20人</option>
+              <option value="302">20-99人</option>
+              <option value="303">100-499人</option>
+              <option value="304">500-999人</option>
+              <option value="305">1000-9999人</option>
+              <option value="306">10000人以上</option>
+            </select>
+            <select id="searchStage" class="search-select">
+              <option value="">融资阶段</option>
+              <option value="801">未融资</option>
+              <option value="802">天使轮</option>
+              <option value="803">A轮</option>
+              <option value="804">B轮</option>
+              <option value="805">C轮</option>
+              <option value="806">D轮及以上</option>
+              <option value="807">上市公司</option>
+              <option value="808">不需要融资</option>
+            </select>
+          </div>
+          <div class="city-dropdown" id="cityDropdown" style="margin-left:24px;flex-shrink:0;">
+            <button type="button" class="city-trigger" id="cityTrigger" onclick="toggleCityDropdown()">
+              <span id="cityTriggerText">全国</span><span class="city-arrow">▾</span>
+            </button>
+            <div class="city-panel" id="cityPanel">
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>热门城市</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('北京')">北京</div><div class="city-opt" onclick="pickCity('上海')">上海</div><div class="city-opt" onclick="pickCity('广州')">广州</div><div class="city-opt" onclick="pickCity('深圳')">深圳</div>
+                  <div class="city-opt" onclick="pickCity('成都')">成都</div><div class="city-opt" onclick="pickCity('杭州')">杭州</div><div class="city-opt" onclick="pickCity('武汉')">武汉</div><div class="city-opt" onclick="pickCity('南京')">南京</div>
+                  <div class="city-opt" onclick="pickCity('重庆')">重庆</div><div class="city-opt" onclick="pickCity('长沙')">长沙</div><div class="city-opt" onclick="pickCity('天津')">天津</div><div class="city-opt" onclick="pickCity('佛山')">佛山</div>
+                  <div class="city-opt" onclick="pickCity('苏州')">苏州</div><div class="city-opt" onclick="pickCity('东莞')">东莞</div><div class="city-opt" onclick="pickCity('宁波')">宁波</div><div class="city-opt" onclick="pickCity('厦门')">厦门</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>其他省会</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('石家庄')">石家庄</div><div class="city-opt" onclick="pickCity('太原')">太原</div><div class="city-opt" onclick="pickCity('呼和浩特')">呼和浩特</div><div class="city-opt" onclick="pickCity('沈阳')">沈阳</div>
+                  <div class="city-opt" onclick="pickCity('长春')">长春</div><div class="city-opt" onclick="pickCity('哈尔滨')">哈尔滨</div><div class="city-opt" onclick="pickCity('合肥')">合肥</div><div class="city-opt" onclick="pickCity('福州')">福州</div>
+                  <div class="city-opt" onclick="pickCity('南昌')">南昌</div><div class="city-opt" onclick="pickCity('郑州')">郑州</div><div class="city-opt" onclick="pickCity('南宁')">南宁</div><div class="city-opt" onclick="pickCity('海口')">海口</div>
+                  <div class="city-opt" onclick="pickCity('贵阳')">贵阳</div><div class="city-opt" onclick="pickCity('昆明')">昆明</div><div class="city-opt" onclick="pickCity('拉萨')">拉萨</div><div class="city-opt" onclick="pickCity('兰州')">兰州</div>
+                  <div class="city-opt" onclick="pickCity('西宁')">西宁</div><div class="city-opt" onclick="pickCity('银川')">银川</div><div class="city-opt" onclick="pickCity('西安')">西安</div><div class="city-opt" onclick="pickCity('乌鲁木齐')">乌鲁木齐</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>山东省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('济南')">济南</div><div class="city-opt" onclick="pickCity('青岛')">青岛</div><div class="city-opt" onclick="pickCity('淄博')">淄博</div><div class="city-opt" onclick="pickCity('潍坊')">潍坊</div>
+                  <div class="city-opt" onclick="pickCity('烟台')">烟台</div><div class="city-opt" onclick="pickCity('济宁')">济宁</div><div class="city-opt" onclick="pickCity('临沂')">临沂</div><div class="city-opt" onclick="pickCity('泰安')">泰安</div>
+                  <div class="city-opt" onclick="pickCity('威海')">威海</div><div class="city-opt" onclick="pickCity('东营')">东营</div><div class="city-opt" onclick="pickCity('滨州')">滨州</div><div class="city-opt" onclick="pickCity('菏泽')">菏泽</div>
+                  <div class="city-opt" onclick="pickCity('枣庄')">枣庄</div><div class="city-opt" onclick="pickCity('日照')">日照</div><div class="city-opt" onclick="pickCity('聊城')">聊城</div><div class="city-opt" onclick="pickCity('德州')">德州</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>江苏省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('无锡')">无锡</div><div class="city-opt" onclick="pickCity('徐州')">徐州</div><div class="city-opt" onclick="pickCity('常州')">常州</div><div class="city-opt" onclick="pickCity('南通')">南通</div>
+                  <div class="city-opt" onclick="pickCity('连云港')">连云港</div><div class="city-opt" onclick="pickCity('淮安')">淮安</div><div class="city-opt" onclick="pickCity('盐城')">盐城</div><div class="city-opt" onclick="pickCity('扬州')">扬州</div>
+                  <div class="city-opt" onclick="pickCity('镇江')">镇江</div><div class="city-opt" onclick="pickCity('泰州')">泰州</div><div class="city-opt" onclick="pickCity('宿迁')">宿迁</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>浙江省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('温州')">温州</div><div class="city-opt" onclick="pickCity('嘉兴')">嘉兴</div><div class="city-opt" onclick="pickCity('湖州')">湖州</div><div class="city-opt" onclick="pickCity('绍兴')">绍兴</div>
+                  <div class="city-opt" onclick="pickCity('金华')">金华</div><div class="city-opt" onclick="pickCity('衢州')">衢州</div><div class="city-opt" onclick="pickCity('舟山')">舟山</div><div class="city-opt" onclick="pickCity('台州')">台州</div>
+                  <div class="city-opt" onclick="pickCity('丽水')">丽水</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>四川省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('绵阳')">绵阳</div><div class="city-opt" onclick="pickCity('德阳')">德阳</div><div class="city-opt" onclick="pickCity('宜宾')">宜宾</div><div class="city-opt" onclick="pickCity('南充')">南充</div>
+                  <div class="city-opt" onclick="pickCity('达州')">达州</div><div class="city-opt" onclick="pickCity('自贡')">自贡</div><div class="city-opt" onclick="pickCity('泸州')">泸州</div><div class="city-opt" onclick="pickCity('攀枝花')">攀枝花</div>
+                  <div class="city-opt" onclick="pickCity('广元')">广元</div><div class="city-opt" onclick="pickCity('乐山')">乐山</div><div class="city-opt" onclick="pickCity('内江')">内江</div><div class="city-opt" onclick="pickCity('遂宁')">遂宁</div>
+                  <div class="city-opt" onclick="pickCity('眉山')">眉山</div><div class="city-opt" onclick="pickCity('广安')">广安</div><div class="city-opt" onclick="pickCity('雅安')">雅安</div><div class="city-opt" onclick="pickCity('巴中')">巴中</div>
+                  <div class="city-opt" onclick="pickCity('资阳')">资阳</div><div class="city-opt" onclick="pickCity('凉山')">凉山</div><div class="city-opt" onclick="pickCity('甘孜')">甘孜</div><div class="city-opt" onclick="pickCity('阿坝')">阿坝</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>湖南省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('株洲')">株洲</div><div class="city-opt" onclick="pickCity('湘潭')">湘潭</div><div class="city-opt" onclick="pickCity('衡阳')">衡阳</div><div class="city-opt" onclick="pickCity('邵阳')">邵阳</div>
+                  <div class="city-opt" onclick="pickCity('岳阳')">岳阳</div><div class="city-opt" onclick="pickCity('常德')">常德</div><div class="city-opt" onclick="pickCity('张家界')">张家界</div><div class="city-opt" onclick="pickCity('益阳')">益阳</div>
+                  <div class="city-opt" onclick="pickCity('郴州')">郴州</div><div class="city-opt" onclick="pickCity('永州')">永州</div><div class="city-opt" onclick="pickCity('怀化')">怀化</div><div class="city-opt" onclick="pickCity('娄底')">娄底</div>
+                  <div class="city-opt" onclick="pickCity('湘西')">湘西</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>湖北省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('黄石')">黄石</div><div class="city-opt" onclick="pickCity('十堰')">十堰</div><div class="city-opt" onclick="pickCity('宜昌')">宜昌</div><div class="city-opt" onclick="pickCity('襄阳')">襄阳</div>
+                  <div class="city-opt" onclick="pickCity('鄂州')">鄂州</div><div class="city-opt" onclick="pickCity('荆门')">荆门</div><div class="city-opt" onclick="pickCity('孝感')">孝感</div><div class="city-opt" onclick="pickCity('荆州')">荆州</div>
+                  <div class="city-opt" onclick="pickCity('黄冈')">黄冈</div><div class="city-opt" onclick="pickCity('咸宁')">咸宁</div><div class="city-opt" onclick="pickCity('随州')">随州</div><div class="city-opt" onclick="pickCity('恩施')">恩施</div>
+                  <div class="city-opt" onclick="pickCity('仙桃')">仙桃</div><div class="city-opt" onclick="pickCity('潜江')">潜江</div><div class="city-opt" onclick="pickCity('天门')">天门</div><div class="city-opt" onclick="pickCity('神农架')">神农架</div>
+                </div>
+              </div>
+              <div class="city-group">
+                <div class="city-group-head" onclick="toggleCityGroup(this)"><span class="city-group-arrow">▸</span>江西省</div>
+                <div class="city-group-body">
+                  <div class="city-opt" onclick="pickCity('景德镇')">景德镇</div><div class="city-opt" onclick="pickCity('萍乡')">萍乡</div><div class="city-opt" onclick="pickCity('九江')">九江</div><div class="city-opt" onclick="pickCity('新余')">新余</div>
+                  <div class="city-opt" onclick="pickCity('鹰潭')">鹰潭</div><div class="city-opt" onclick="pickCity('赣州')">赣州</div><div class="city-opt" onclick="pickCity('吉安')">吉安</div><div class="city-opt" onclick="pickCity('宜春')">宜春</div>
+                  <div class="city-opt" onclick="pickCity('抚州')">抚州</div><div class="city-opt" onclick="pickCity('上饶')">上饶</div>
+                </div>
+              </div>
+              <div class="city-opt city-opt-standalone" onclick="pickCity('全国')">全国</div>
+            </div>
+            <input type="hidden" id="searchCity" value="全国">
+          </div>
+          <div class="city-dropdown" id="districtDropdown" style="margin-left:4px;flex-shrink:0;max-width:360px;overflow:hidden;">
+            <button type="button" class="city-trigger" id="districtTrigger" onclick="toggleDistrictDropdown()">
+              <span id="districtTriggerText">区域不限</span><span class="city-arrow">▾</span>
+            </button>
+            <div class="city-panel" id="districtPanel" style="max-height:300px;overflow-y:auto;"></div>
+            <input type="hidden" id="searchDistrict" value="">
           </div>
         </div>
         <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;align-items:center;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">批量岗位关键词(英文逗号分隔)</span>
-          <input type="text" id="setSearchKeywords" placeholder="例如：AI Agent,大模型开发,产品经理" style="flex:1;min-width:240px;background:var(--bg-2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:6px 10px;font-family:var(--font);border-radius:var(--radius-sm);transition:border-color .15s,box-shadow .15s;">
-          <button class="btn btn-success" onclick="batchSearch()">批量搜索</button>
+          <input type="hidden" id="searchKeyword" value="">
+          <span style="font-size:12px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">岗位名称搜索<br />英文逗号分隔</span>
+          <input type="text" id="setSearchKeywords" placeholder="例如：AI Agent,大模型开发,产品经理" class="search-input">
+          <button class="btn btn-primary" onclick="batchSearch(event)">一键搜索岗位🔍</button>
         </div>
-        <div class="search-row advanced">
-          <select id="searchSalary" class="search-select">
-            <option value="">薪资不限</option>
-            <option value="402">3K以下</option>
-            <option value="403">3-5K</option>
-            <option value="404">5-10K</option>
-            <option value="405">10-20K</option>
-            <option value="406">20-50K</option>
-            <option value="407">50K以上</option>
-          </select>
-          <select id="searchExperience" class="search-select">
-            <option value="">经验不限</option>
-            <option value="108">在校生</option>
-            <option value="102">应届生</option>
-            <option value="103">1年内</option>
-            <option value="104">1-3年</option>
-            <option value="105">3-5年</option>
-            <option value="106">5-10年</option>
-            <option value="107">10年以上</option>
-          </select>
-          <select id="searchDegree" class="search-select">
-            <option value="">学历不限</option>
-            <option value="209">初中及以下</option>
-            <option value="208">中专/中技</option>
-            <option value="206">高中</option>
-            <option value="202">大专</option>
-            <option value="203">本科</option>
-            <option value="204">硕士</option>
-            <option value="205">博士</option>
-          </select>
-          <select id="searchJobType" class="search-select">
-            <option value="">岗位类型</option>
-            <option value="1">全职</option>
-            <option value="2">兼职</option>
-          </select>
-          <select id="searchScale" class="search-select">
-            <option value="">公司规模</option>
-            <option value="301">0-20人</option>
-            <option value="302">20-99人</option>
-            <option value="303">100-499人</option>
-            <option value="304">500-999人</option>
-            <option value="305">1000-9999人</option>
-            <option value="306">10000人以上</option>
-          </select>
-          <select id="searchStage" class="search-select">
-            <option value="">融资阶段</option>
-            <option value="801">未融资</option>
-            <option value="802">天使轮</option>
-            <option value="803">A轮</option>
-            <option value="804">B轮</option>
-            <option value="805">C轮</option>
-            <option value="806">D轮及以上</option>
-            <option value="807">上市公司</option>
-            <option value="808">不需要融资</option>
-          </select>
-          <input type="text" id="searchWelfare" placeholder="福利关键词" class="search-input" style="flex:1;min-width:120px;max-width:180px;">
+        <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
+          <span style="font-size:12px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称过滤<br />英文逗号分隔</span>
+          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" oninput="debounceSaveTitleFilter()">
+          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中的岗位名称会被过滤<br />(可在岗位列表内查看)</span>
+        </div>
+        <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;align-items:center;">
+          <span style="font-size:12px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">福利标签筛选<br />英文逗号分隔 </span>
+          <input type="text" id="searchWelfare" placeholder="例如：五险一金,双休,带薪年假 ⚠️可能导致搜索结果不多" class="search-input">
           <label class="toggle-pill" title="同一公司只投递一次">
-            <input type="checkbox" id="chkDedupCompany" checked>
+            <input type="checkbox" id="chkDedupCompany" checked onchange="saveSearchTogglesToSettings()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
             <span class="toggle-label">公司去重</span>
           </label>
-          <label class="toggle-pill" title="HR超过这么多天未活跃就跳过">
-            <input type="checkbox" id="chkFilterInactiveHr" checked>
+          <label class="toggle-pill" title="岗位超过多少天未活跃就跳过">
+            <input type="checkbox" id="chkFilterInactiveHr" checked onchange="saveSearchTogglesToSettings()">
             <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            <span class="toggle-label">跳过 <input type="number" id="inactiveDays" value="7" min="1" max="60" class="toggle-num"> 天未活跃的招聘者</span>
+            <span class="toggle-label">跳过 <input type="number" id="inactiveDays" value="7" min="1" max="60" class="toggle-num"> 天未活跃岗位</span>
           </label>
-        </div>
-        <div class="search-row" style="background:var(--bg-1);flex-wrap:wrap;">
-          <span style="font-size:10.5px;color:var(--text-3);white-space:nowrap;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:center;">岗位名称过滤(英文逗号分隔)</span>
-          <input type="text" id="searchTitleBlacklist" placeholder="例如：销售,客服,外包,兼职" class="search-input" style="flex:1;min-width:240px;" oninput="debounceSaveTitleFilter()">
-          <span style="font-size:11px;color:var(--text-3);align-self:center;">命中关键字的岗位名称会被过滤(可在岗位列表查看)</span>
+          <button class="btn btn-success" onclick="batchApplyAll(1)">一键投递🗳️</button>
+          <button class="btn btn-ghost btn-sm" onclick="batchApplyAll(5)" title="多页扫描+投递">翻5页 ▸</button>
         </div>
       </div>
 
@@ -1569,13 +1793,13 @@ td a:hover{color:var(--accent)}
       </div>
       <div class="section" style="padding:16px 18px;">
         <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
-          <button class="btn btn-sm" onclick="loadApplications('')">全部</button>
-          <button class="btn btn-sm" onclick="loadApplications('pending')">待投递</button>
-          <button class="btn btn-sm" onclick="loadApplications('applied')">已投递</button>
-          <button class="btn btn-sm" onclick="loadApplications('replied')">需回复</button>
-          <button class="btn btn-sm" onclick="loadApplications('filtered')">已过滤</button>
-          <button class="btn btn-sm" onclick="loadShortlists()">收藏</button>
-          <button class="btn btn-sm btn-primary" onclick="batchApplyPending()" style="margin-left:auto;">一键投递（待投递）</button>
+          <button class="btn btn-sm filter-btn-active" id="appFilterAll" onclick="loadApplications('')">全部</button>
+          <button class="btn btn-sm" id="appFilterPending" onclick="loadApplications('pending')">待投递</button>
+          <button class="btn btn-sm" id="appFilterApplied" onclick="loadApplications('applied')">已投递</button>
+          <button class="btn btn-sm" id="appFilterReplied" onclick="loadApplications('replied')">需回复</button>
+          <button class="btn btn-sm" id="appFilterFiltered" onclick="loadApplications('filtered')">已过滤</button>
+          <button class="btn btn-sm" id="appFilterShortlist" onclick="loadShortlists()">收藏</button>
+          <button class="btn btn-sm btn-success" onclick="batchApplyPending(event)" style="margin-left:auto;">一键投递</button>
           <button class="btn btn-sm btn-danger" onclick="confirmClearApplications()">清空列表</button>
         </div>
         <div id="applyProgress"></div>
@@ -1589,12 +1813,14 @@ td a:hover{color:var(--accent)}
     <!-- Tab 3: Chat -->
     <div class="tab" id="tab-chat">
       <div class="chat-container">
-        <div class="chat-list" id="conversationList"><div class="empty"><div class="empty-icon">💬</div>暂无会话</div></div>
+        <div class="chat-list">
+          <div id="conversationList" style="flex:1;overflow-y:auto;"><div class="empty"><div class="empty-icon">💬</div>暂无会话</div></div>
+        </div>
         <div class="chat-pane">
           <div class="chat-header" id="chatHeader">
             <div class="header-left">
               <div class="info">
-                <div class="name"><span class="status-dot"></span>选择会话</div>
+                <div class="name">选择会话</div>
                 <div class="company">点击左侧会话开始查看</div>
               </div>
             </div>
@@ -1629,46 +1855,45 @@ td a:hover{color:var(--accent)}
     <!-- Tab 5: Settings -->
     <div class="tab" id="tab-settings">
       <div class="section"><h3>AI 模型配置</h3>
-        <div class="setting-row"><label>平台</label><select id="setAIPlatform" onchange="onPlatformChange()"><option value="">-- 选择平台 --</option><option value="deepseek">DeepSeek</option><option value="openrouter">OpenRouter</option><option value="mimo">小米MiMo</option><option value="custom">自定义</option></select></div>
+        <div class="setting-row"><label>平台</label><select id="setAIPlatform" onchange="onPlatformChange()"><option value="">-- 选择平台 --</option><option value="deepseek">DeepSeek</option><option value="openrouter">OpenRouter</option><option value="mimo">小米MiMo (Token Plan)</option><option value="custom">自定义</option></select></div>
         <div class="setting-row"><label>API Key</label><input type="password" id="setAIApiKey" placeholder="输入API Key"><span id="aiKeyStatus" style="font-size:11px;margin-left:4px;"></span></div>
         <div class="setting-row"><label>Base URL</label><input type="text" id="setAIBaseUrl" placeholder="自动填充"></div>
         <div class="setting-row"><label>模型</label><input type="text" id="setAIModel" list="modelList" placeholder="选择或输入模型名" style="flex:1;"><datalist id="modelList"></datalist></div>
-        <div style="font-size:11px;color:var(--text-3);margin-top:4px;font-family:var(--mono);">选择平台后自动填充Base URL和可选模型列表</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;font-family:var(--mono);">选择平台后自动填充Base URL和可选模型</div>
       </div>
 
       <div class="section"><h3>个人资料</h3>
         <div class="setting-row"><label>所在城市</label><input type="text" id="setLocation" placeholder="如：深圳、北京、远程" onchange="saveLocationToSettings()"></div>
         <div class="setting-row"><label>微信号</label><input type="text" id="setWechat" placeholder="AI 会在合适时机发给 HR"></div>
-        <div class="setting-row"><label>简历摘要</label><textarea id="setResume" placeholder="你的技能、项目经验……  AI 会在聊天中引用这些信息" rows="3"></textarea></div>
+        <div class="setting-row"><label>简历摘要</label><div class="setting-textarea-wrap"><textarea id="setResume" readonly placeholder="你的技能、项目经验……  AI 会在聊天中引用这些信息" rows="6"></textarea><button type="button" class="prompt-edit-btn" onclick="togglePromptEdit(this,'setResume')">修改</button></div></div>
       </div>
 
       <div class="section"><h3>招呼语</h3>
-        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleGreetingRows()"><option value="template">固定模板</option><option value="smart">智能生成（自动注入简历摘要，失败回退固定模板）</option></select></div>
-        <div id="greetingTemplateRow" class="setting-row"><label>招呼语</label><textarea id="setGreeting" placeholder="{job_title} 会被替换为实际岗位名"></textarea></div>
-        <div id="smartPromptRow" class="setting-row" style="display:none"><label>智能生成招呼语提示词</label><textarea id="setSmartGreetingPrompt" rows="4" placeholder="留空使用默认" style="width:100%;"></textarea></div>
+        <div class="setting-row"><label>模式</label><select id="setGreetingMode" onchange="toggleGreetingRows()"><option value="template">固定模板</option><option value="smart">智能生成（自动注入个人资料，失败回退固定模板）</option></select></div>
+        <div id="greetingTemplateRow" class="setting-row"><label>固定招呼语</label><div class="setting-textarea-wrap"><textarea id="setGreeting" rows="6" readonly placeholder="{job_title} 会被替换为实际岗位名"></textarea><button type="button" class="prompt-edit-btn" onclick="togglePromptEdit(this,'setGreeting')">修改</button></div></div>
+        <div id="smartPromptRow" class="setting-row" style="display:none"><label>招呼语提示词</label><div class="setting-textarea-wrap"><textarea id="setSmartGreetingPrompt" rows="6" readonly ></textarea><button type="button" class="prompt-edit-btn" onclick="togglePromptEdit(this,'setSmartGreetingPrompt')">修改</button></div></div>
       </div>
 
       <div class="section"><h3>高级设置</h3>
         <a href="javascript:void(0)" onclick="document.getElementById('advancedSettings').style.display=document.getElementById('advancedSettings').style.display==='none'?'block':'none';this.textContent=document.getElementById('advancedSettings').style.display==='none'?'展开 ▼':'收起 ▲'" style="font-size:12px;color:var(--accent);">展开 ▼</a>
         <div id="advancedSettings" style="display:none;margin-top:12px;">
 
-          <h4 style="font-size:15px;margin:12px 0 6px;color:var(--text-2);">频率限制</h4>
-          <div class="setting-row"><label>每日投递上限</label><input type="number" id="setDailyLimit" value="15" min="1" max="30"></div>
-          <div class="setting-row"><label>回复间隔(秒)</label><div style="display:flex;gap:6px;flex:1;align-items:center;"><input type="number" id="setMinDelay" value="30" min="10" max="300" style="flex:1;"><span style="color:var(--text-3);">—</span><input type="number" id="setMaxDelay" value="120" min="20" max="600" style="flex:1;"></span></div></div>
-          <div style="font-size:11px;color:var(--text-3);margin:6px 0 -4px;padding:6px 10px;background:var(--bg-2);border-radius:var(--radius-sm);">💡 「公司去重」「HR 不活跃阈值」请到「岗位搜索」页面顶部开关配置，此处不再重复</div>
-          <h4 style="font-size:15px;margin:12px 0 6px;color:var(--text-2);">回复规则</h4>
-          <div class="setting-row"><label>AI 自动回复</label><select id="setAutoReply"><option value="true">开启</option><option value="false">关闭</option></select></div>
-          <div class="setting-row"><label>回复风格</label><select id="setStyle"><option value="professional">专业</option><option value="casual">轻松</option><option value="enthusiastic">热情</option></select></div>
-          <div class="setting-row"><label>会话冷却(秒)</label><input type="number" id="setConversationCooldown" value="60" min="10" max="600"></div>
-          <div class="setting-row"><label>AI 回复提示词</label><textarea id="setReplyRules" rows="4" placeholder="留空使用默认规则" style="width:100%;"></textarea></div>
+          <div class="setting-row"><label>每日投递上限(50)</label><input type="number" id="setDailyLimit" value="15" min="1" max="50"></div>
+          <div class="setting-row"><label>AI 自动回复</label><select id="setAutoReply"><option value="true">开启</option><option value="false">关闭</option></select></div>       
+          <div class="setting-row"><label>AI 回复风格</label><select id="setStyle"><option value="professional">专业</option><option value="casual">轻松</option><option value="enthusiastic">热情</option></select></div>
+          <div class="setting-row"><label>回复间隔(秒)<br />(10-20/300-600)</label><div style="display:flex;gap:6px;flex:1;align-items:center;"><input type="number" id="setMinDelay" value="30" min="10" max="300" style="flex:1;"><span style="color:var(--text-3);">—</span><input type="number" id="setMaxDelay" value="120" min="20" max="600" style="flex:1;"></span></div></div>
+          <div class="setting-row"><label>会话冷却(秒)<br />(10-600)</label><input type="number" id="setConversationCooldown" value="60" min="10" max="600"></div>
+          <div class="setting-row"><label>回复系统提示词<br />⚠️谨慎修改</label><div class="setting-textarea-wrap"><textarea id="setReplyRules" rows="10" readonly placeholder="修改后点击保存设置即可生效"></textarea><button type="button" class="prompt-edit-btn" onclick="togglePromptEdit(this,'setReplyRules')">修改</button></div></div>
         </div>
       </div>
 
       <div class="section"><h3>系统</h3>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-primary" id="btnSaveSettings" onclick="saveSettings()">保存设置</button>
           <button class="btn btn-sm" onclick="doRelogin()">重新扫码登录</button>
           <span id="sessionStatus" style="font-size:10.5px;color:var(--text-3);line-height:26px;font-family:var(--mono);"></span>
+          <span style="flex:1"></span>
+          <button class="btn btn-sm btn-danger" onclick="confirmRestoreDefaults()">恢复默认值</button>
         </div>
       </div>
     </div>
@@ -1680,7 +1905,74 @@ td a:hover{color:var(--accent)}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0,sessionSearchApplied=0,sessionSearchFiltered=0;
+let activeTab='search',activeConvId=null,ws=null,conversations=[],currentSearchJobs=[],searchInFlight=false,sessionSearchPending=0,sessionSearchApplied=0,sessionSearchFiltered=0,clearApiKeyFlag=false;
+
+// 默认值（与用户数据库 settings 保持一致）
+const DEFAULT_RESUME_SUMMARY = `【岗位经验】
+【核心技能】
+【项目亮点】
+【学历/证书】
+【其他优势】`;
+const DEFAULT_GREETING_TEMPLATE = `您好！看到贵司在招{job_title}，我很感兴趣。`;
+const DEFAULT_SMART_GREETING_PROMPT = `以求职者身份帮我生成一条150字以内的打招呼语给招聘方，要求：
+1. 突出我与岗位JD匹配的能力，如跨度较大就突出我的学习能力与转行态度
+2. 直接以"你好"开头，禁止出现任何名称代词或占位符，如 XX 或 **
+3. 最后说明在线简历不够完整，想要一个发送个人简历的机会
+4. 除了打招呼语以外不生成其他内容，方便直接发送`;
+const DEFAULT_REPLY_PROMPT = `你是一个求职者开发的AI助手，在求职平台上帮他自动与招聘方沟通。
+
+## 核心身份
+- 坦诚告诉对方你是AI助手，由求职者本人开发
+- 这个AI工具本身就是求职者技术能力的证明
+- 如果对方感兴趣，求职者本人会亲自跟进
+
+## 求职者背景（动态适配）
+- 根据对方发布的招聘岗位来匹配你的回复侧重点
+- 不要硬套万能模板，按照岗位信息回复：如果对方招的是AI产品经理，就围绕AI产品方向聊
+- 绝不要编造岗位不存在的信息，也不要提到与对方招聘岗位无关的东西
+
+## 回复原则
+- 2-4句话，自然真诚、不生硬
+- 围绕对方发布的岗位信息（岗位名、公司、JD）来回复
+- 主动了解对方岗位的具体要求、工作内容、团队情况等
+- 回答技术问题时给出专业、具体的内容
+- 不承诺薪资、入职时间、面试时间——表示这些后续可以和本人聊
+- 不要重复寒暄，不要重复自我介绍
+
+## 面试处理（重要）
+- 绝对不要替求职者答应、承诺面试、给具体时间等
+- 当对方说"来面试""方便面试吗""什么时候过来"等邀请时，先引导加微信：
+  "感谢邀请！方便的话可以先加微信聊聊，让求职者本人跟您沟通会更好，面试的事你们定"这类话即可
+
+## 触发发送规则（重要）
+系统会根据对方的消息内容自动执行以下操作，你只需要在回复中适当提及即可：
+
+### 简历发送
+- 当对方要求"发简历""看看简历""CV""作品集"时，系统会自动通过BOSS官方「发简历」按钮发送附件简历
+- 你只需要回复"已发送简历给您，请查收"即可
+- 绝对不要说"我这边不存储简历""没有简历文件"之类的话
+
+### 微信交换
+- 当对方请求"加微信""微信聊""加个v""换微信"时，系统会自动通过BOSS官方「换微信」按钮分享求职者微信
+- 你只需要回复"已通过BOSS发您"这类话即可
+- 绝对不要在回复里出现"微信""WeChat""VX""微信号"这些词，BOSS平台会过滤
+
+### 电话交换
+- 当对方请求"电话""手机号"时，系统会自动通过BOSS官方「换电话」按钮分享求职者电话
+- 你只需要回复"电话已发您，请查收"即可
+
+### 重要提醒
+- 不要在HR没有要求的情况下主动说"已发送"
+- 不要重复说"已发送"，如果之前已经发过，就不再提
+- 这些操作会在你回复之前执行，所以你说"已发送"时东西确实已经发出去了
+
+## 输出格式（严格JSON）
+{"reply": "你的回复内容", "interest": "high/medium/low"}
+
+interest 评估标准（根据完整对话判断对方当前兴趣程度）：
+- high: 对方问了能力细节、项目经历、面试时间、要微信、表达明确合作意向
+- medium: 配合沟通、说"方便""可以""好的""聊聊"等、发岗位内容、问基本情况
+- low: 简单打招呼、摸底试探、回复敷衍、未表现出进一步了解的意愿`;
 
 function switchTab(tab){
   activeTab=tab;
@@ -1778,7 +2070,7 @@ function handleWS(msg){
     case'relogin_ok':document.getElementById('sessionStatus').textContent='登录态正常';toast('登录成功','success');break;
     case'wechat_exchanged':if(activeTab==='wechat')loadWechatExchanges();break;
     case'applications_cleared':loadApplications();refreshStatus();toast('岗位列表已清空','success');break;
-    case'conversations_cleared':loadConversations();activeConvId=null;document.getElementById('chatMessages').innerHTML='<div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div>';document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name"><span class="status-dot"></span>选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';document.getElementById('btnManualSend').disabled=true;refreshStatus();toast('聊天记录已清空','success');break;
+    case'conversations_cleared':loadConversations();activeConvId=null;document.getElementById('chatMessages').innerHTML='<div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div>';document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name">选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';document.getElementById('btnManualSend').disabled=true;refreshStatus();toast('聊天记录已清空','success');break;
     case'monitor_paused':case'monitor_resumed':case'system':refreshStatus();break;
   }
 }
@@ -1850,6 +2142,7 @@ function doSearch(){
   try{
     localStorage.setItem('ui_searchKeyword',document.getElementById('searchKeyword').value);
     localStorage.setItem('ui_searchCity',document.getElementById('searchCity').value);
+    localStorage.setItem('ui_setSearchKeywords',document.getElementById('setSearchKeywords').value);
   }catch(e){}
   searchInFlight=true;
   document.getElementById('searchStatus').innerHTML='<div class="status-banner"><div class="spinner"></div> 搜索中...</div>';
@@ -1863,29 +2156,37 @@ function doSearch(){
     job_type:document.getElementById('searchJobType').value||undefined,
     scale:document.getElementById('searchScale').value||undefined,
     stage:document.getElementById('searchStage').value||undefined,
+    area_business:document.getElementById('searchDistrict').value||undefined,
   };
   fetch('/api/jobs/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).then(d=>{
     searchInFlight=false;
     if(d.detail){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">'+esc(d.detail)+'</div>';toast(d.detail,'error');return;}
     if(d.jobs_found===undefined||d.jobs_found===null){document.getElementById('searchStatus').innerHTML='<div class="status-banner" style="margin-top:8px;">搜索失败</div>';toast('搜索失败','error');return;}
-    currentSearchJobs=Array.isArray(d.jobs)?d.jobs:[];
+    // 合并结果：按 job_url 去重，新结果置顶
+    var newJobs=Array.isArray(d.jobs)?d.jobs:[];
+    if(newJobs.length){
+      var existUrls=new Set(currentSearchJobs.map(function(j){return j.job_url||'';}));
+      var toPrepend=[];
+      newJobs.forEach(function(j){if(j.job_url&&!existUrls.has(j.job_url))toPrepend.push(j);});
+      if(toPrepend.length)currentSearchJobs=toPrepend.concat(currentSearchJobs);
+    }
     // 构建搜索结果摘要：含过滤统计 + 恢复统计
     let summary='找到 '+d.jobs_found+' 条，已保存 '+d.saved+' 条';
     if(d.restored_from_filtered>0){
-      summary+='（含 '+d.restored_from_filtered+' 条从过滤状态恢复为可投递）';
+      summary+='，已恢复过滤 '+d.restored_from_filtered+' 条';
     }
     let filteredTotal=(d.skipped_keyword||0)+(d.skipped_garbled||0)+(d.skipped_company||0)+(d.skipped_inactive_hr||0);
     if(filteredTotal>0){
       let parts=[];
-      if(d.skipped_keyword)parts.push('关键词过滤 '+d.skipped_keyword);
-      if(d.skipped_garbled)parts.push('乱码过滤 '+d.skipped_garbled);
+      if(d.skipped_keyword)parts.push('关键词 '+d.skipped_keyword);
+      if(d.skipped_garbled)parts.push('乱码 '+d.skipped_garbled);
       if(d.skipped_company)parts.push('公司去重 '+d.skipped_company);
       if(d.skipped_inactive_hr)parts.push('HR不活跃 '+d.skipped_inactive_hr);
-      summary+='，已过滤 '+filteredTotal+' 条（'+parts.join('、')+'）';
+      summary+='，已过滤'+parts.map(function(p){return ' '+p;}).join('')+' 条';
     }
     document.getElementById('searchStatus').innerHTML='<div class="status-banner success" style="margin-top:8px;">'+summary+'</div>';
-    // 更新漏斗「搜索过滤」数字（会话级：本次搜索的净变化 = 过滤数 - 恢复数）
-    sessionSearchFiltered=filteredTotal-(d.restored_from_filtered||0);
+    // 更新漏斗「搜索过滤」数字（会话级累加）
+    sessionSearchFiltered+=filteredTotal-(d.restored_from_filtered||0);
     let funnelEl=document.getElementById('funnelFiltered');
     if(funnelEl)animateNumber(funnelEl,sessionSearchFiltered);
     currentSearchJobs.length?renderJobs(currentSearchJobs):loadJobs();
@@ -2024,7 +2325,13 @@ function toggleShortlist(url,title,company,salary,city,btn){
 }
 
 let appCurrentPage=1,appCurrentStatus='',appAllJobs=[],APP_PAGE_SIZE=15,appTotalPages=1;
-function loadApplications(status){appCurrentStatus=status||'';appCurrentPage=1;fetch('/api/jobs?limit=2000'+(status?'&status='+status:'')).then(r=>r.json()).then(d=>{appAllJobs=d.jobs||[];renderAppPage();});}
+function _setAppFilterActive(filterId){
+  document.querySelectorAll('[id^="appFilter"]').forEach(b=>b.classList.remove('filter-btn-active'));
+  var el=document.getElementById(filterId);if(el)el.classList.add('filter-btn-active');
+}
+function loadApplications(status){appCurrentStatus=status||'';appCurrentPage=1;
+  _setAppFilterActive(status==='pending'?'appFilterPending':status==='applied'?'appFilterApplied':status==='replied'?'appFilterReplied':status==='filtered'?'appFilterFiltered':'appFilterAll');
+  fetch('/api/jobs?limit=2000'+(status?'&status='+status:'')).then(r=>r.json()).then(d=>{appAllJobs=d.jobs||[];renderAppPage();});}
 function renderAppPage(){
   let tbody=document.getElementById('appTableBody'),total=appAllJobs.length,totalPages=Math.max(1,Math.ceil(total/APP_PAGE_SIZE)),start=(appCurrentPage-1)*APP_PAGE_SIZE;
   appTotalPages=totalPages;
@@ -2037,6 +2344,7 @@ function renderAppPage(){
 }
 
 function loadShortlists(){
+  _setAppFilterActive('appFilterShortlist');
   fetch('/api/shortlists').then(r=>r.json()).then(d=>{
     let tbody=document.getElementById('appTableBody'),sl=d.shortlists||[];
     if(!sl.length){tbody.innerHTML='<tr><td colspan="6" class="empty">暂无收藏</td></tr>';return;}
@@ -2057,12 +2365,17 @@ function loadConversations(){
     if(!conversations.length){list.innerHTML='<div class="empty"><div class="empty-icon">💬</div>暂无会话</div>';return;}
     list.innerHTML=conversations.map(c=>{
       const initial=(c.hr_name||'?').slice(0,1).toUpperCase();
+      // 清理岗位名（去噪）
+      let jobTitle=c.job_title||'';
+      // 过滤掉明显是垃圾数据的文本
+      const jobExactNoise=['更多','在线','离线','忙碌','设置','备注','暂停','开启','投递','打招呼','收藏','举报','屏蔽','查看','返回','关闭','菜单','继续沟通','新对话','系统','通知','BOSS','简历','附件','上传','制作','更新','AI'];
+      if(jobExactNoise.includes(jobTitle))jobTitle='';
+      if(/^\d+$/.test(jobTitle))jobTitle='';
       return'<div class="chat-list-item'+(activeConvId===c.id?' active':'')+'" onclick="selectConversation('+c.id+')">'
         +'<div class="chat-avatar">'+esc(initial)+'</div>'
         +'<div class="info">'
-        +'<div class="name-row"><div class="name">'+esc(c.hr_name||'未知')+(c.last_message_from==='hr'&&Date.now()-new Date(c.last_message_at).getTime()<86400000?'<span class="reply-dot"></span>':'')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
+        +'<div class="name-row"><div class="name"><span class="name-text">'+esc(c.hr_name||'未知')+'</span>'+(jobTitle?'<span class="job-inline">'+esc(jobTitle)+'</span>':'')+(c.last_message_from==='hr'&&Date.now()-new Date(c.last_message_at).getTime()<86400000?'<span class="reply-dot"></span>':'')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
         +'<div class="preview">'+esc((c.last_message_text||'').slice(0,40))+'</div>'
-        +'<div class="meta-line">'+esc(c.hr_company||'')+' · '+esc((c.job_title||'').slice(0,15))+'</div>'
         +'</div></div>';
     }).join('');
   });
@@ -2071,12 +2384,26 @@ function selectConversation(id){
   activeConvId=id;loadConversations();loadMessages(id);
   let conv=conversations.find(c=>c.id===id);if(!conv)return;
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
+  // 清理公司名和职位（去噪）
+  let company=conv.hr_company||'';
+  let title=conv.hr_title||'';
+  // 过滤掉明显是垃圾数据的文本
+  const exactNoise=['更多','在线','离线','忙碌','设置','备注','暂停','开启','投递','打招呼','收藏','举报','屏蔽','查看','返回','关闭','菜单','继续沟通','新对话','系统','通知','BOSS','简历','附件','上传','制作','更新','AI'];
+  if(exactNoise.includes(company))company='';
+  if(exactNoise.includes(title))title='';
+  // 过滤掉纯数字
+  if(/^\d+$/.test(company))company='';
+  if(/^\d+$/.test(title))title='';
   document.getElementById('chatHeader').innerHTML=
     '<div class="header-left">'
     +'<div class="chat-avatar" style="width:32px;height:32px;font-size:12px;">'+esc(initial)+'</div>'
     +'<div class="info">'
-    +'<div class="name"><span class="status-dot"></span>'+esc(conv.hr_name||'未知')+'</div>'
-    +'<div class="company">'+esc(conv.hr_company||'')+' · '+esc((conv.job_title||'').slice(0,20))+'</div>'
+    /* 第一行：只显示HR名字（去重） */
+    +'<div class="name-row"><span class="name">'+esc(conv.hr_name||'未知')+'</span>'
+    +(conv.online_status?'<span class="online-badge'+(conv.online_status==='离线'?' offline':'')+'">'+esc(conv.online_status)+'</span>':'')
+    +'</div>'
+    /* 第二行：公司名 | 招聘者职位 | 岗位名（去重去噪，只保留有效信息） */
+    +'<div class="job-row">'+(company?esc(company):'')+(company&&title?' · ':'')+(title?esc(title):'')+((company||title)&&conv.job_title?' ｜ ':'')+(conv.job_title?esc(conv.job_title):'')+'</div>'
     +'</div></div>'
     +'<div class="header-right">'
     +'<button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()">'+(conv.auto_reply_enabled?'暂停当前自动回复':'开启当前自动回复')+'</button>'
@@ -2091,21 +2418,42 @@ function renderMessages(msgs){
   let pane=document.getElementById('chatMessages');
   if(!msgs||!msgs.length){pane.innerHTML='<div class="empty"><div class="empty-icon">💭</div>暂无消息</div>';return;}
   let old=pane.querySelectorAll('.msg-row').length,isNew=msgs.length>old;
+  let conv=conversations.find(c=>c.id===activeConvId);
+  let hrName=(conv&&conv.hr_name)||'HR';
+  let hrInitial=(hrName.slice(0,1)).toUpperCase();
+  // 格式化平台时间
+  const fmtTime=(t)=>{
+    if(!t)return'';
+    try{
+      const d=new Date(t);
+      const now=new Date();
+      const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      const msgDay=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+      const hm=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+      if(msgDay.getTime()===today.getTime())return hm;
+      const yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+      if(msgDay.getTime()===yesterday.getTime())return'昨天 '+hm;
+      const mm=(d.getMonth()+1).toString().padStart(2,'0');
+      const dd=d.getDate().toString().padStart(2,'0');
+      return mm+'-'+dd+' '+hm;
+    }catch(e){return'';}
+  };
   pane.innerHTML=msgs.map((m,i)=>{
     const isMe=m.sender==='me';
     const isAi=isMe&&m.ai_generated;
     const side=isMe?'me':'hr';
     const avClass=isAi?'msg-avatar ai-av':(isMe?'msg-avatar me-av':'msg-avatar hr-av');
-    const avText=isAi?'AI':(isMe?'我':'H');
+    const avText=isAi?'AI':(isMe?'我':hrInitial);
     const bubbleClass='msg-bubble'+(isAi?' ai':'');
     const c=esc(m.content).replace(/^(?:已读|未读|送达|发送失败|已发送)\s*/,'');
-    const label=isMe?'我'+(isAi?' · AI代发':''):'HR';
+    const label=isMe?'我'+(isAi?' · AI代发':''):hrName;
+    const timeStr=fmtTime(m.platform_time||m.created_at);
     const anim=isNew&&i>=old?'animation-delay:'+Math.min((i-old)*0.04,0.3)+'s':'';
     return'<div class="msg-row '+side+'" style="'+anim+'">'
       +'<div class="'+avClass+'">'+avText+'</div>'
       +'<div class="msg-body">'
       +'<div class="'+bubbleClass+'">'+c+'</div>'
-      +'<div class="msg-meta">'+label+'</div>'
+      +'<div class="msg-meta">'+label+(timeStr?' · '+timeStr:'')+'</div>'
       +'</div>'
       +'</div>';
   }).join('');
@@ -2125,8 +2473,8 @@ function toggleAutoReply(){
 }
 
 
-/* ── 清空数据确认弹窗 ── */
-function _showConfirmModal(icon,title,desc,onConfirm){
+/* ── 通用确认弹窗 ── */
+function _showConfirmModal(icon,title,desc,onConfirm,btnText,btnClass){
   const id='confirmModal_'+Date.now();
   const overlay=document.createElement('div');
   overlay.className='analyze-modal-overlay confirm-modal';
@@ -2137,11 +2485,53 @@ function _showConfirmModal(icon,title,desc,onConfirm){
     +'<div class="confirm-desc">'+desc+'</div>'
     +'<div class="confirm-actions">'
     +'<button class="btn btn-sm" onclick="document.getElementById(\''+id+'\').remove()">取消</button>'
-    +'<button class="btn btn-sm btn-danger" id="'+id+'_ok">确认清空</button>'
+    +'<button class="btn btn-sm '+(btnClass||'btn-primary')+'" id="'+id+'_ok">'+(btnText||'确认')+'</button>'
     +'</div></div>';
   document.body.appendChild(overlay);
   overlay.querySelector('#'+id+'_ok').onclick=function(){overlay.remove();onConfirm();};
   overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+}
+/* ── 轻量确认弹窗（用于搜索等低风险操作）── */
+function _showLightConfirm(title,desc,onConfirm,btnText){
+  const id='confirmModal_'+Date.now();
+  const overlay=document.createElement('div');
+  overlay.className='analyze-modal-overlay confirm-modal';
+  overlay.id=id;
+  overlay.innerHTML='<div class="modal-box">'
+    +'<div class="confirm-icon" style="font-size:28px;margin-bottom:8px;">🔍</div>'
+    +'<div class="confirm-title" style="font-size:14px;">'+title+'</div>'
+    +'<div class="confirm-desc" style="font-size:12px;color:var(--text-2);margin-bottom:16px;">'+desc+'</div>'
+    +'<div class="confirm-actions">'
+    +'<button class="btn btn-sm" onclick="document.getElementById(\''+id+'\').remove()">取消</button>'
+    +'<button class="btn btn-sm btn-primary" id="'+id+'_ok">'+(btnText||'确认')+'</button>'
+    +'</div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#'+id+'_ok').onclick=function(){overlay.remove();onConfirm();};
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+}
+/* ── 气泡确认提示 ── */
+function _showPopoverConfirm(btn,text,onConfirm,confirmText,confirmClass){
+  if(!btn)return;
+  // 关闭已有的气泡
+  document.querySelectorAll('.popover-confirm').forEach(function(el){el.remove();});
+  const pop=document.createElement('div');
+  pop.className='popover-confirm';
+  pop.innerHTML='<div class="pop-text">'+text+'</div>'
+    +'<div class="pop-actions">'
+    +'<button class="btn btn-xs" data-action="cancel">取消</button>'
+    +'<button class="btn btn-xs '+(confirmClass||'btn-primary')+'" data-action="ok">'+(confirmText||'确认')+'</button>'
+    +'</div>';
+  document.body.appendChild(pop);
+  // 定位到按钮下方
+  var rect=btn.getBoundingClientRect();
+  pop.style.right=(window.innerWidth-rect.right)+'px';
+  pop.style.top=(rect.bottom+6)+'px';
+  pop.querySelector('[data-action="cancel"]').onclick=function(e){e.stopPropagation();removePop();};
+  pop.querySelector('[data-action="ok"]').onclick=function(e){e.stopPropagation();removePop();onConfirm();};
+  function removePop(){pop.remove();document.removeEventListener('click',_closeHandler);}
+  // 用 click 事件监听外部点击，通过 stopPropagation 防止按钮点击触发
+  function _closeHandler(e){if(!pop.contains(e.target)&&e.target!==btn){removePop();}}
+  setTimeout(function(){document.addEventListener('click',_closeHandler);},50);
 }
 function confirmClearApplications(){
   _showConfirmModal('⚠️','清空岗位列表','此操作将删除所有岗位列表记录（含收藏）<br /><b>不可恢复，确定要清空吗？</b>',function(){
@@ -2149,7 +2539,7 @@ function confirmClearApplications(){
       if(!r.ok) return r.json().then(j=>Promise.reject(j.detail||'请求失败 ('+r.status+')'));
       return r.json();
     }).then(d=>{loadApplications();refreshStatus();toast('已清空 '+(d.deleted||0)+' 条岗位记录','success');}).catch(e=>toast('清空失败: '+e,'error'));
-  });
+  },'确认清空','btn-danger');
 }
 function confirmClearConversations(){
   _showConfirmModal('⚠️','清空聊天页数据','此操作将删除所有聊天页会话和消息记录（仅当前页面）<br /><b>不可恢复，确定要清空吗？</b>',function(){
@@ -2159,10 +2549,44 @@ function confirmClearConversations(){
     }).then(d=>{
       activeConvId=null;loadConversations();
       document.getElementById('chatMessages').innerHTML='<div class="empty"><div class="empty-icon">💭</div>选择一个会话查看消息</div>';
-      document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name"><span class="status-dot"></span>选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';
+      document.getElementById('chatHeader').innerHTML='<div class="header-left"><div class="info"><div class="name">选择会话</div><div class="company">点击左侧会话开始查看</div></div></div><div class="header-right"><button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()" disabled>暂停当前自动回复</button></div>';
       document.getElementById('btnManualSend').disabled=true;
       refreshStatus();toast('已清空 '+(d.deleted||0)+' 个聊天会话','success');
     }).catch(e=>toast('清空失败: '+e,'error'));
+  },'确认清空','btn-danger');
+}
+function confirmRestoreDefaults(){
+  _showConfirmModal('🔄','恢复默认设置','将所有设置项恢复为默认值，包括清空已配置的 API Key<br /><b>确定要清空吗？</b>',function(){
+    // 重置所有 UI 值为默认
+    setVal('setGreetingMode','template');
+    setVal('setGreeting',DEFAULT_GREETING_TEMPLATE);
+    setVal('setSmartGreetingPrompt',DEFAULT_SMART_GREETING_PROMPT);
+    setVal('setResume',DEFAULT_RESUME_SUMMARY);
+    setVal('setStyle','professional');
+    setVal('setDailyLimit','15');
+    setVal('setMinDelay','30');
+    setVal('setMaxDelay','120');
+    setVal('setLocation','');
+    setVal('setWechat','');
+    setVal('setSearchKeywords','');
+    setVal('setAutoReply','false');
+    setVal('setAIBaseUrl','');
+    setVal('setAIModel','');
+    setVal('setAIPlatform','');
+    setVal('setConversationCooldown','60');
+    setVal('setReplyRules',DEFAULT_REPLY_PROMPT);
+    setVal('inactiveDays','7');
+    document.getElementById('chkFilterInactiveHr').checked=true;
+    document.getElementById('chkDedupCompany').checked=true;
+    // 清除 API Key
+    document.getElementById('setAIApiKey').value='';
+    document.getElementById('setAIApiKey').placeholder='输入API Key';
+    document.getElementById('aiKeyStatus').innerHTML='<span style="color:var(--orange);">未配置</span>';
+    clearApiKeyFlag=true;
+    toggleGreetingRows();
+    // 自动保存到后端
+    saveSettings();
+    toast('已恢复所有默认设置','success');
   });
 }
 
@@ -2206,6 +2630,15 @@ function saveLocationToSettings(){
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_location:v})}).catch(()=>{});
 }
 
+// 搜索页开关/输入框 → 实时同步到 settings
+function saveSearchTogglesToSettings(){
+  let data={
+    filter_inactive_hr:document.getElementById('chkFilterInactiveHr')?.checked?'true':'false',
+    dedup_company_by_default:document.getElementById('chkDedupCompany')?.checked?'true':'false',
+    max_hr_inactive_days:(document.getElementById('inactiveDays')?.value||'7').toString()
+  };
+  fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{});
+}
 function batchApplyAll(maxPages){
   maxPages=maxPages||1;
   let blackKeywordsRaw=(document.getElementById('searchTitleBlacklist')?.value||'').trim();
@@ -2218,37 +2651,44 @@ function batchApplyAll(maxPages){
       return !blackKeywords.some(kw=>t.toLowerCase().includes(kw.toLowerCase()));
     });
     let filtered=before-pending.length;
-    if(filtered>0)toast(`已过滤 ${filtered} 个岗位（命中黑名单）`,'info',2000);
+    if(filtered>0)toast(`已过滤 ${filtered} 个岗位`,'info',2000);
   }
   if(maxPages===1&&!pending.length){toast('没有待投递的岗位，请先搜索','warning');return;}
   let dedup=document.getElementById('chkDedupCompany')?document.getElementById('chkDedupCompany').checked:true;
   let filterInactive=document.getElementById('chkFilterInactiveHr')?document.getElementById('chkFilterInactiveHr').checked:true;
   let inactiveDays=document.getElementById('inactiveDays')?parseInt(document.getElementById('inactiveDays').value||'7',10):7;
+  let btn=document.querySelector('button[onclick="batchApplyAll('+maxPages+')"]');
   if(maxPages>1){
-    let desc='翻'+maxPages+'页扫描+一键投递';
-    if(dedup)desc+='，自动跳过已发过公司';
-    if(filterInactive)desc+='，跳过HR '+inactiveDays+' 天未活跃';
-    if(!confirm(desc+'。确定继续？'))return;
-    let el=document.getElementById('searchStatus');
-    el.innerHTML='<div class="status-banner"><div class="spinner"></div> 翻页扫描投递中（最多 '+maxPages+' 页）...</div>';
-    fetch('/api/jobs/scan-and-apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_pages:maxPages,dedup_company:dedup,filter_inactive_hr:filterInactive})}).then(r=>r.json()).then(d=>{
-      if(d.detail){el.innerHTML='<div class="status-banner" style="margin-top:8px;">'+esc(d.detail)+'</div>';toast(d.detail,'error');return;}
-      el.innerHTML='<div class="status-banner success" style="margin-top:8px;">翻 '+d.pages_processed+' 页: 扫描 '+d.total_scanned+' / 投递 '+d.total_applied+' / 跳过公司 '+d.total_skipped_company+' / 跳过HR不活跃 '+d.total_skipped_inactive_hr+' / 失败 '+d.total_failed+'</div>';
-      loadJobs();refreshStatus();
-      toast('翻页投递完成: '+d.total_applied+' 成功','success');
-    }).catch(e=>{el.innerHTML='<div class="status-banner" style="margin-top:8px;">失败: '+esc(e.message)+'</div>';toast('失败: '+e.message,'error');});
+    let desc='翻'+maxPages+'页扫描+投递';
+    if(dedup)desc+=', 公司去重';
+    if(filterInactive)desc+=', 跳过'+inactiveDays+'天未活跃';
+    _showPopoverConfirm(btn,desc,function(){
+      let el=document.getElementById('searchStatus');
+      el.innerHTML='<div class="status-banner"><div class="spinner"></div> 翻页扫描投递中（最多 '+maxPages+' 页）...</div>';
+      fetch('/api/jobs/scan-and-apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({max_pages:maxPages,dedup_company:dedup,filter_inactive_hr:filterInactive})}).then(r=>r.json()).then(d=>{
+        if(d.detail){el.innerHTML='<div class="status-banner" style="margin-top:8px;">'+esc(d.detail)+'</div>';toast(d.detail,'error');return;}
+        el.innerHTML='<div class="status-banner success" style="margin-top:8px;">翻 '+d.pages_processed+' 页: 扫描 '+d.total_scanned+' / 投递 '+d.total_applied+' / 跳过公司 '+d.total_skipped_company+' / 跳过HR不活跃 '+d.total_skipped_inactive_hr+' / 失败 '+d.total_failed+'</div>';
+        loadJobs();refreshStatus();
+        toast('翻页投递完成: '+d.total_applied+' 成功','success');
+      }).catch(e=>{el.innerHTML='<div class="status-banner" style="margin-top:8px;">失败: '+esc(e.message)+'</div>';toast('失败: '+e.message,'error');});
+    },'开始投递','btn-success');
     return;
   }
-  if(!confirm('确定投递 '+pending.length+' 条？'))return;
-  doBatchApply(pending.map(j=>j.job_url),'searchStatus');
+  _showPopoverConfirm(btn,'将投递 '+pending.length+' 个待投递岗位',function(){
+    doBatchApply(pending.map(j=>j.job_url),'searchStatus');
+  },'投递','btn-success');
 }
-async function batchApplyPending(){
+async function batchApplyPending(e){
+  if(e)e.stopPropagation();
   let el=document.getElementById('applyProgress');el.innerHTML='<div style="display:flex;align-items:center;gap:8px;color:var(--text-2);"><div class="spinner"></div> 加载中...</div>';
   let r=await fetch('/api/jobs?status=pending&limit=200'),d=await r.json();
   let pending=(d.jobs||[]).filter(j=>j.job_url);
   if(!pending.length){el.innerHTML='<div class="empty">没有待投递岗位</div>';toast('没有待投递岗位','info');return;}
-  if(!confirm('确定投递 '+pending.length+' 条？')){el.innerHTML='';return;}
-  doBatchApply(pending.map(j=>j.job_url),'applyProgress');
+  let btn=document.querySelector('button[onclick="batchApplyPending(event)"]');
+  _showPopoverConfirm(btn,'投递 '+pending.length+' 条待投递岗位',function(){
+    doBatchApply(pending.map(j=>j.job_url),'applyProgress');
+  },'开始投递','btn-success');
+  el.innerHTML='';
 }
 function doBatchApply(urls,elId){
   let done=0,ok=0,total=urls.length,cancelled=false,el=document.getElementById(elId);
@@ -2257,13 +2697,29 @@ function doBatchApply(urls,elId){
   async function next(i){if(cancelled||i>=total){if(!cancelled){el.innerHTML='<div class="status-banner success" style="margin-top:8px;">完成: '+ok+'/'+total+' 成功</div>';toast('批量完成: '+ok+'/'+total,'success');}loadJobs();refreshStatus();if(elId==='applyProgress')loadApplications();return;}up();try{let r=await fetch('/api/jobs/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job_url:urls[i]})}),d=await r.json();if(d.success)ok++;}catch(ex){}done++;next(i+1);}
   next(0);
 }
-function batchSearch(){
-  let kw=document.getElementById('searchKeyword').value,cs=[];
-  let txt=document.getElementById('setSearchKeywords');if(txt&&txt.value){cs=txt.value.split(',').map(s=>s.trim()).filter(Boolean);}
-  if(cs.length===0){doSearch();return;}
-  if(!confirm('确定搜索 '+cs.length+' 个关键词？'))return;
-  toast('开始批量搜索 '+cs.length+' 个关键词','info',2000);
-  (async()=>{for(let k of cs){document.getElementById('searchKeyword').value=k;await new Promise(r=>{doSearch();let t=setInterval(()=>{if(!searchInFlight){clearInterval(t);setTimeout(r,200);}},300);});}})();
+function batchSearch(e){
+  if(e)e.stopPropagation();
+  let cs=[];
+  let txt=document.getElementById('setSearchKeywords');
+  let singleKw=(document.getElementById('searchKeyword').value||'').trim();
+  if(txt&&txt.value){cs=txt.value.split(',').map(s=>s.trim()).filter(Boolean);}
+  let btn=document.querySelector('button[onclick="batchSearch(event)"]');
+  if(cs.length===0){
+    // 没有批量关键词，清空 searchKeyword，搜索单个关键词或默认推荐
+    document.getElementById('searchKeyword').value='';
+    if(!singleKw){
+      _showPopoverConfirm(btn,'关键词为空将搜索默认推荐岗位',function(){
+        doSearch();
+      },'搜索');
+      return;
+    }
+    doSearch();
+    return;
+  }
+  _showPopoverConfirm(btn,'搜索 '+cs.length+' 个岗位关键词',function(){
+    toast('开始批量搜索 '+cs.length+' 个岗位','info',2000);
+    (async()=>{for(let k of cs){document.getElementById('searchKeyword').value=k;await new Promise(r=>{doSearch();let t=setInterval(()=>{if(!searchInFlight){clearInterval(t);setTimeout(r,200);}},300);});}})();
+  },'搜索');
 }
 
 function esc(s){return s?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'):'';}
@@ -2275,17 +2731,140 @@ function attr(s){
     .replace(/'/g,"&#39;");
 }
 function setVal(id,v){let el=document.getElementById(id);if(el)el.value=v;}
+/* ── 城市下拉框 ── */
+function toggleCityDropdown(){
+  var dd=document.getElementById('cityDropdown');
+  var isOpen=dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if(!isOpen){
+    var trigger=document.getElementById('cityTrigger');
+    var rect=trigger.getBoundingClientRect();
+    var panel=document.getElementById('cityPanel');
+    panel.style.top=(rect.bottom+4)+'px';
+    /* 靠右对齐：panel 右边与 trigger 右边对齐 */
+    panel.style.left=Math.max(8,rect.right-224)+'px';
+  }
+}
+function toggleCityGroup(head){
+  head.parentElement.classList.toggle('open');
+}
+function pickCity(city){
+  document.getElementById('searchCity').value=city;
+  document.getElementById('cityTriggerText').textContent=city;
+  document.getElementById('cityDropdown').classList.remove('open');
+  /* 高亮选中 */
+  document.querySelectorAll('#cityPanel .city-opt').forEach(function(o){
+    o.classList.toggle('active',o.textContent===city);
+  });
+  /* 保存到 localStorage */
+  try{localStorage.setItem('ui_searchCity',city);}catch(e){}
+  /* 加载区县 */
+  loadDistricts(city);
+}
+var selectedDistricts=[];
+var districtCache={};
+function loadDistricts(city){
+  var panel=document.getElementById('districtPanel');
+  selectedDistricts=[];
+  document.getElementById('searchDistrict').value='';
+  document.getElementById('districtTriggerText').textContent='区域不限';
+  document.getElementById('districtTrigger').style.width='';
+  if(!city||city==='全国'){
+    panel.innerHTML='<div class="city-opt active" onclick="pickDistrict(\'\',\'\')">不限</div>';
+    return;
+  }
+  if(districtCache[city]){
+    renderDistricts(districtCache[city]);
+    return;
+  }
+  fetch('/api/districts?city='+encodeURIComponent(city)).then(function(r){return r.json();}).then(function(d){
+    districtCache[city]=d.districts||{};
+    renderDistricts(districtCache[city]);
+  }).catch(function(){
+    panel.innerHTML='<div class="city-opt active" onclick="pickDistrict(\'\',\'\')">不限</div>';
+  });
+}
+function renderDistricts(districts){
+  var panel=document.getElementById('districtPanel');
+  if(!districts||Object.keys(districts).length===0){
+    panel.innerHTML='<div class="city-opt active" onclick="pickDistrict(\'\',\'\')">不限</div>';
+    return;
+  }
+  var html='<div class="city-opt active" onclick="pickDistrict(\'\',\'\')">不限</div>';
+  Object.keys(districts).forEach(function(name){
+    html+='<div class="city-opt district-opt" data-name="'+name+'" data-code="'+districts[name]+'" onclick="pickDistrict(this.dataset.name,this.dataset.code)">'+name+'</div>';
+  });
+  panel.innerHTML=html;
+}
+function toggleDistrictDropdown(){
+  var dd=document.getElementById('districtDropdown');
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open')){
+    var trigger=document.getElementById('districtTrigger');
+    var rect=trigger.getBoundingClientRect();
+    var panel=document.getElementById('districtPanel');
+    panel.style.top=(rect.bottom+4)+'px';
+    panel.style.left=rect.left+'px';
+    panel.style.width=rect.width+'px';
+  }
+}
+function pickDistrict(name,code){
+  if(!name){
+    selectedDistricts=[];
+    document.getElementById('searchDistrict').value='';
+    document.getElementById('districtTriggerText').textContent='区域不限';
+    document.getElementById('districtTrigger').style.width='';
+    document.querySelectorAll('#districtPanel .district-opt').forEach(function(o){o.classList.remove('selected');});
+    var firstOpt=document.querySelector('#districtPanel .city-opt:not(.district-opt)');
+    if(firstOpt)firstOpt.classList.add('active');
+    document.getElementById('districtDropdown').classList.remove('open');
+    return;
+  }
+  var idx=selectedDistricts.findIndex(function(d){return d.name===name;});
+  if(idx>=0){selectedDistricts.splice(idx,1);}
+  else{selectedDistricts.push({name:name,code:code});}
+  var el=document.querySelector('#districtPanel .district-opt[data-name="'+name+'"]');
+  if(el)el.classList.toggle('selected',idx<0);
+  document.getElementById('searchDistrict').value=selectedDistricts.map(function(d){return d.code;}).join(',');
+  if(selectedDistricts.length===0){
+    document.getElementById('districtTriggerText').textContent='区域不限';
+    document.getElementById('districtTrigger').style.width='';
+  }else{
+    var names=selectedDistricts.map(function(d){return d.name;});
+    var txt=names.join('+');
+    document.getElementById('districtTriggerText').textContent=txt;
+    document.getElementById('districtTrigger').style.width='auto';
+  }
+  var firstOpt=document.querySelector('#districtPanel .city-opt:not(.district-opt)');
+  if(firstOpt)firstOpt.classList.toggle('active',selectedDistricts.length===0);
+  /* 保存到 localStorage */
+  try{localStorage.setItem('ui_searchDistrict',document.getElementById('searchDistrict').value);}catch(e){}
+}
+/* 点击外部关闭 */
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#cityDropdown'))document.getElementById('cityDropdown').classList.remove('open');
+  if(!e.target.closest('#districtDropdown'))document.getElementById('districtDropdown').classList.remove('open');
+});
+
 function rememberUi(){
   // 记住搜索页用户上次输入的关键词和城市，刷新后自动恢复
   let kw=document.getElementById('searchKeyword');
   let city=document.getElementById('searchCity');
+  let skw=document.getElementById('setSearchKeywords');
   if(kw)try{let v=localStorage.getItem('ui_searchKeyword');if(v!==null)kw.value=v;}catch(e){}
-  if(city)try{let v=localStorage.getItem('ui_searchCity');if(v!==null)city.value=v;}catch(e){}
+  if(skw)try{let v=localStorage.getItem('ui_setSearchKeywords');if(v!==null&&v!=='媒体运营,企业宣传')skw.value=v;}catch(e){}
+  if(city)try{let v=localStorage.getItem('ui_searchCity');
+    if(v!==null&&v!==''&&v!=='德阳'){city.value=v;document.getElementById('cityTriggerText').textContent=v;
+      document.querySelectorAll('#cityPanel .city-opt').forEach(function(o){o.classList.toggle('active',o.textContent===v);});
+      loadDistricts(v);
+    }else{city.value='全国';document.getElementById('cityTriggerText').textContent='全国';loadDistricts('全国');}
+  }catch(e){}
 }
 function rememberUiBind(){
-  ['searchKeyword','searchCity'].forEach(id=>{
+  ['searchKeyword','searchCity','setSearchKeywords'].forEach(id=>{
     let el=document.getElementById(id);if(!el)return;
     el.addEventListener('change',()=>{try{localStorage.setItem('ui_'+id,el.value);}catch(e){}});
+    el.addEventListener('input',()=>{try{localStorage.setItem('ui_'+id,el.value);}catch(e){}});
   });
 }
 
@@ -2296,67 +2875,31 @@ function loadSettings(){
     rememberUiBind();
     // 同步后端保存的过滤关键字到 UI
     let bl=document.getElementById('searchTitleBlacklist');if(bl)bl.value=s.title_filter_keywords||'';
-    setVal('setGreeting',s.greeting_template||'');
+    setVal('setGreeting',s.greeting_template||DEFAULT_GREETING_TEMPLATE);
     setVal('setGreetingMode',s.greeting_mode||'template');
-    setVal('setSmartGreetingPrompt',s.smart_greeting_prompt||'');
     setVal('setStyle',s.ai_reply_style||'professional');
     setVal('setDailyLimit',s.daily_apply_limit||'15');
     setVal('setMinDelay',s.min_reply_delay_sec||'30');
     setVal('setMaxDelay',s.max_reply_delay_sec||'120');
     setVal('setLocation',s.user_location||'');
-    setVal('setResume',s.resume_summary||'');
+    setVal('setResume',s.resume_summary||DEFAULT_RESUME_SUMMARY);
     setVal('setWechat',s.wechat_id||'');
-    setVal('setSearchKeywords',s.search_keywords||'');
-    setVal('setAutoReply',s.auto_reply_enabled||'true');
+    // 搜索关键词：优先使用 localStorage 中的值（用户最新输入）
+    let skwSaved=false;
+    try{let v=localStorage.getItem('ui_setSearchKeywords');if(v!==null&&v!=='媒体运营,企业宣传'){document.getElementById('setSearchKeywords').value=v;skwSaved=true;}}catch(e){}
+    if(!skwSaved)setVal('setSearchKeywords',s.search_keywords||'');
+    setVal('setAutoReply',s.auto_reply_enabled||'false');
     setVal('setAIBaseUrl',s.ai_base_url||'');
     setVal('setAIModel',s.ai_model||'');
-    setVal('setMaxHrInactiveDays',s.max_hr_inactive_days||'7');
-    setVal('setFilterInactiveHr',s.filter_inactive_hr!=='false');
-    setVal('setDedupByDefault',s.dedup_company_by_default!=='false');
-    setVal('inactiveDays',s.max_hr_inactive_days||'7');
     setVal('setConversationCooldown',s.conversation_cooldown_sec||'60');
-    setVal('setReplyRules',s.reply_rules_system_prompt||'');
-    setVal('setSmartGreetingPrompt',s.smart_greeting_prompt||'');
-    if(!document.getElementById('setSmartGreetingPrompt').value){
-      document.getElementById('setSmartGreetingPrompt').value = [
-        '规则：',
-        '1. 从JD岗位职责中找3个最耗时的痛点/能力',
-        '2. 从岗位名提一个词做方向（如AI运营、大模型）',
-        '3. 每个痛点不超过8个字',
-        '4. 严格按以下格式，不加解释：',
-        '',
-        '老板，我的方向是【方向】方向——【能力1】、【能力2】、【能力3】，按效果付费，做不到不拿底薪，聊聊？'
-      ].join('\n');
-    }
-    if(!document.getElementById('setReplyRules').value){
-      document.getElementById('setReplyRules').value = [
-        '你是一个求职者开发的AI助手，在BOSS直聘上帮他自动与招聘方沟通。',
-        '',
-        '## 核心身份',
-        '- 坦诚告诉对方你是AI助手，由求职者本人开发',
-        '- 这个AI工具本身是求职者技术能力的证明',
-        '',
-        '## 回复原则',
-        '- 2-4句话，自然真诚，围绕对方岗位信息回复',
-        '- 不承诺薪资/入职时间——"这些后续和本人聊"',
-        '',
-        '## 面试处理',
-        '- 不直接答应面试，先引导加微信：',
-        '  "方便的话先加微信聊聊，让求职者本人跟您沟通，面试的事微信上直接定"',
-        '',
-        '## 自动触发',
-        '- HR要简历 → 系统自动发 → 回复"已通过BOSS发您"',
-        '- HR要微信 → 系统自动换 → 回复"联系方式已发您"',
-        '- 不要在文字里出现"微信""VX"等词（BOSS会过滤）',
-        '',
-        '## 输出格式',
-        '{"reply": "回复内容", "interest": "high/medium/low"}',
-        '',
-        'interest: high=问技术/约面试/要微信 | medium=配合沟通 | low=敷衍'
-      ].join('\n');
-    }
+    setVal('setReplyRules',s.reply_rules_system_prompt||DEFAULT_REPLY_PROMPT);
+    setVal('setSmartGreetingPrompt',s.smart_greeting_prompt||DEFAULT_SMART_GREETING_PROMPT);
+    // AI 平台恢复
+    setVal('setAIPlatform',s.ai_platform||'');
+    // 搜索页开关/输入框恢复
     if(document.getElementById('chkFilterInactiveHr'))document.getElementById('chkFilterInactiveHr').checked=s.filter_inactive_hr!=='false';
     if(document.getElementById('chkDedupCompany'))document.getElementById('chkDedupCompany').checked=s.dedup_company_by_default!=='false';
+    setVal('inactiveDays',s.max_hr_inactive_days||'7');
     if(s.ai_key_configured==='true'){document.getElementById('setAIApiKey').placeholder='已配置';document.getElementById('aiKeyStatus').innerHTML='<span style="color:var(--green);">已配置</span>';}
     else{document.getElementById('aiKeyStatus').innerHTML='<span style="color:var(--orange);">未配置</span>';}
     toggleGreetingRows();
@@ -2365,7 +2908,29 @@ function loadSettings(){
 function toggleGreetingRows(){
   const mode = document.getElementById('setGreetingMode').value;
   document.getElementById('greetingTemplateRow').style.display = mode === 'template' ? 'flex' : 'none';
-  document.getElementById('smartPromptRow').style.display = mode === 'smart' ? 'block' : 'none';
+  document.getElementById('smartPromptRow').style.display = mode === 'smart' ? 'flex' : 'none';
+}
+function togglePromptEdit(btn,textareaId){
+  const ta=document.getElementById(textareaId);
+  if(ta.hasAttribute('readonly')){
+    ta.removeAttribute('readonly');
+    ta.style.opacity='1';ta.style.resize='vertical';ta.style.cursor='text';
+    ta.focus();
+    btn.textContent='确定';
+  }else{
+    ta.setAttribute('readonly','');
+    ta.style.opacity='.7';ta.style.resize='none';ta.style.cursor='default';
+    btn.textContent='修改';
+    showToast('保存设置后生效');
+  }
+}
+function showToast(msg){
+  let t=document.createElement('div');
+  t.textContent=msg;
+  Object.assign(t.style,{position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',background:'rgba(0,0,0,.8)',color:'#fff',padding:'10px 24px',borderRadius:'8px',fontSize:'14px',zIndex:'99999',pointerEvents:'none',opacity:'0',transition:'opacity .3s'});
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{t.style.opacity='1';});
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},1800);
 }
 function saveSettings(){
   function valOr(id, fallback){
@@ -2392,10 +2957,16 @@ function saveSettings(){
     data.ai_model=valOr('setAIModel','');
     data.conversation_cooldown_sec=valOr('setConversationCooldown','60');
     data.reply_rules_system_prompt=valOr('setReplyRules','');
+    data.ai_platform=valOr('setAIPlatform','');
+    // 搜索页开关/输入框持久化
+    data.filter_inactive_hr=document.getElementById('chkFilterInactiveHr')?.checked?'true':'false';
+    data.dedup_company_by_default=document.getElementById('chkDedupCompany')?.checked?'true':'false';
+    data.max_hr_inactive_days=valOr('inactiveDays','7');
     delete data.ai_api_key;
     delete data.ai_key_configured;
     let key=document.getElementById('setAIApiKey')?.value||'';
     if(key)data.ai_api_key=key;
+    if(clearApiKeyFlag){data.ai_api_key='';clearApiKeyFlag=false;}
   fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(r=>r.json()).then(()=>{
     let btn=document.getElementById('btnSaveSettings')||document.querySelector('button[onclick="saveSettings()"]');
     if(btn){
@@ -2413,7 +2984,7 @@ function saveSettings(){
   });
   });
 }
-const PLATFORMS={deepseek:{baseUrl:'https://api.deepseek.com/v1',models:[{v:'deepseek-v4-pro',t:'DeepSeek V4 Pro'},{v:'deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek-reasoner',t:'DeepSeek Reasoner'}]},openrouter:{baseUrl:'https://openrouter.ai/api/v1',models:[{v:'openrouter/auto',t:'Auto'},{v:'deepseek/deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek/deepseek-r1',t:'DeepSeek R1'},{v:'anthropic/claude-sonnet-4',t:'Claude Sonnet 4'},{v:'google/gemini-2.5-flash',t:'Gemini 2.5 Flash'}]},mimo:{baseUrl:'https://token-plan-sgp.xiaomimimo.com/v1',models:[{v:'mi-undefined',t:'MiMo'}]},custom:{baseUrl:'',models:[]}};
+const PLATFORMS={deepseek:{baseUrl:'https://api.deepseek.com/v1',models:[{v:'deepseek-v4-pro',t:'DeepSeek V4 Pro'},{v:'deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek-reasoner',t:'DeepSeek Reasoner'}]},openrouter:{baseUrl:'https://openrouter.ai/api/v1',models:[{v:'openrouter/auto',t:'Auto'},{v:'deepseek/deepseek-chat',t:'DeepSeek Chat'},{v:'deepseek/deepseek-r1',t:'DeepSeek R1'},{v:'anthropic/claude-sonnet-4',t:'Claude Sonnet 4'},{v:'google/gemini-2.5-flash',t:'Gemini 2.5 Flash'}]},mimo:{baseUrl:'https://token-plan-cn.xiaomimimo.com/v1',models:[{v:'mimo-v2.5',t:'MiMo'}]},custom:{baseUrl:'',models:[]}};
 function onPlatformChange(){
   let plat=document.getElementById('setAIPlatform').value,cfg=PLATFORMS[plat];if(!cfg)return;
   document.getElementById('setAIBaseUrl').value=cfg.baseUrl;
