@@ -1015,57 +1015,78 @@ class BossAutomation(BossScraper):
             return ''
 
     def read_chat_header_info(self) -> dict:
-        """读取当前聊天窗口头部岗位信息（第二行）。
+        """读取当前聊天窗口头部岗位信息（第二行：岗位名 · 薪资 · 城市）。
 
-        直接用精确 class 查找，不猜父容器：
-          - .position-name  → 岗位名称
-          - .position-name 的下一个兄弟 span → 薪资
-          - .city           → 城市
+        策略：定位右侧聊天 header 容器 → 取文本 → 拆行 → 第二行就是「岗位 薪资 城市」。
+        不依赖具体 class 名，用通用文本解析，跟之前抓公司名的思路一致。
         """
         try:
             info = self.page.evaluate("""() => {
                 const result = { jobTitle: '', salary: '', city: '' };
 
-                // 诊断：先打印聊天头部区域的完整 HTML（帮助调试 class 名）
-                // 查找聊天窗口右侧头部区域
-                const headerCandidates = document.querySelectorAll(
-                    '.chat-header, .header-area, .detail-header, .info-area, [class*="header"], [class*="detail"]'
-                );
-                // 收集所有 class 包含 position/name/city/salary 的元素
-                const allEls = document.querySelectorAll('[class*="position"], [class*="job"], [class*="city"], [class*="salary"], [class*="name"]');
-                const classDebug = [];
-                allEls.forEach(el => {
-                    const t = (el.innerText || '').trim().slice(0, 30);
-                    if (t) classDebug.push(el.className + ' => ' + t);
-                });
-                result._debug = classDebug.join(' | ');
-
-                // 岗位名：直接查 .position-name
-                const posName = document.querySelector('.position-name');
-                if (posName) {
-                    result.jobTitle = (posName.innerText || '').trim();
-                    // 薪资：.position-name 的下一个非空兄弟元素
-                    let next = posName.nextElementSibling;
-                    while (next) {
-                        const t = (next.innerText || '').trim();
-                        if (t && !next.classList.contains('city')) {
-                            result.salary = t;
-                            break;
-                        }
-                        next = next.nextElementSibling;
+                // 1. 定位右侧聊天 header 区域（多种可能的选择器）
+                let headerEl = null;
+                const candidates = [
+                    '.chat-header', '.header-area', '.detail-header', '.info-area',
+                    '[class*="chat"] [class*="header"]', '[class*="chat"] [class*="info"]',
+                    '[class*="chat"] [class*="detail"]', '[class*="conversation-detail"]'
+                ];
+                for (const sel of candidates) {
+                    const el = document.querySelector(sel);
+                    if (el && el.getBoundingClientRect().width > 100) {
+                        headerEl = el;
+                        break;
                     }
                 }
 
-                // 城市：直接查 .city
-                const cityEl = document.querySelector('.city');
-                if (cityEl) result.city = (cityEl.innerText || '').trim();
+                // 2. 兜底：找右侧面板中包含"在线"文字的 header 容器
+                if (!headerEl) {
+                    const all = document.querySelectorAll('div, section, header');
+                    for (const el of all) {
+                        const text = (el.innerText || '').trim();
+                        // header 特征：短文本、包含"在线"、在页面右半边
+                        const rect = el.getBoundingClientRect();
+                        if (rect.width > 200 && rect.width < 600 &&
+                            text.length > 5 && text.length < 100 &&
+                            text.includes('在线') && rect.left > window.innerWidth * 0.35) {
+                            // 排除太深的容器（只要直接 header）
+                            if (el.children.length < 15) {
+                                headerEl = el;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!headerEl) return result;
+
+                // 3. 提取 header 文本，按换行分割
+                const fullText = (headerEl.innerText || '').trim();
+                const lines = fullText.split('\\n').map(l => l.trim()).filter(l => l);
+
+                if (lines.length >= 2) {
+                    // 第二行就是：岗位名  薪资  城市（如 "小红书运营  5-7K  广州"）
+                    const line2 = lines[1];
+                    // 用空格/中间点/竖线等分隔符拆分
+                    const parts = line2.split(/[\\s·|\\|\\/]+/).filter(p => p.trim());
+
+                    if (parts.length >= 1) result.jobTitle = parts[0].trim();
+                    if (parts.length >= 2) result.salary = parts[1].trim();
+                    if (parts.length >= 3) result.city = parts[2].trim();
+                }
 
                 return result;
             }""")
-            # 打印诊断信息
-            _debug = info.get('_debug', '') if info else ''
-            print(f"  [header诊断] class映射: {_debug}")
-            print(f"  [header诊断] 结果: jobTitle={info.get('jobTitle')!r}, salary={info.get('salary')!r}, city={info.get('city')!r}")
+
+            job_title = (info.get('jobTitle') or '') if info else ''
+            salary = (info.get('salary') or '') if info else ''
+            city = (info.get('city') or '') if info else ''
+
+            if any([job_title, salary, city]):
+                print(f"  [header] 岗位={job_title}, 薪资={salary}, 城市={city}")
+            else:
+                print(f"  [header] 未提取到岗位信息")
+
             return info or {'jobTitle': '', 'salary': '', 'city': ''}
         except Exception as e:
             print(f"  ⚠️ read_chat_header_info 异常: {e}")
