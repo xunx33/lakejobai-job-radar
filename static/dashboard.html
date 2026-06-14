@@ -2365,11 +2365,8 @@ function loadConversations(){
     if(!conversations.length){list.innerHTML='<div class="empty"><div class="empty-icon">💬</div>暂无会话</div>';return;}
     list.innerHTML=conversations.map(c=>{
       const initial=(c.hr_name||'?').slice(0,1).toUpperCase();
-      // 清理岗位名（去噪）
+      // 岗位名：后端已用精确 DOM class 提取，前端直接显示
       let jobTitle=c.job_title||'';
-      // 过滤掉明显是垃圾数据的文本
-      const jobExactNoise=['更多','在线','离线','忙碌','设置','备注','暂停','开启','投递','打招呼','收藏','举报','屏蔽','查看','返回','关闭','菜单','继续沟通','新对话','系统','通知','BOSS','简历','附件','上传','制作','更新','AI'];
-      if(jobExactNoise.includes(jobTitle))jobTitle='';
       if(/^\d+$/.test(jobTitle))jobTitle='';
       return'<div class="chat-list-item'+(activeConvId===c.id?' active':'')+'" onclick="selectConversation('+c.id+')">'
         +'<div class="chat-avatar">'+esc(initial)+'</div>'
@@ -2384,26 +2381,12 @@ function selectConversation(id){
   activeConvId=id;loadConversations();loadMessages(id);
   let conv=conversations.find(c=>c.id===id);if(!conv)return;
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
-  // 清理公司名和职位（去噪）
+  // 公司名/职位/岗位名：后端已用精确 DOM class 提取，前端直接显示
   let company=conv.hr_company||'';
   let title=conv.hr_title||'';
-  // 噪音词列表（精确匹配 + 子串检测）
-  const exactNoise=['更多','在线','离线','忙碌','设置','备注','暂停','开启','投递','打招呼','收藏','举报','屏蔽','查看','返回','关闭','菜单','继续沟通','新对话','系统','通知','BOSS','简历','附件','上传','制作','更新','AI'];
-  const subNoise=['更多','在线','离线','忙碌','人事主管','人事经理','人事专员','招聘主管','招聘经理','招聘专员']; // 常见hr_title不应出现在company里
-  // 精确匹配过滤
-  if(exactNoise.includes(company))company='';
-  if(exactNoise.includes(title))title='';
-  // 子串噪音检测：如果 company 包含噪音词且长度>8，尝试截断
-  if(company && company.length>8){
-    for(const n of subNoise){if(company.includes(n)){company=company.replace(n,'').replace(/\s+/g,' ').trim();break;}}
-    for(const n of exactNoise){if(company.includes(n)){company=company.replace(n,'').replace(/\s+/g,' ').trim();break;}}
-  }
-  // 过滤掉纯数字
+  // 仅做最基本的防护：过滤空值和纯数字
   if(/^\d+$/.test(company))company='';
   if(/^\d+$/.test(title))title='';
-  // 最终长度保护：公司名不超过8字，职位不超过6字
-  if(company && company.length>8)company=company.slice(0,8);
-  if(title && title.length>6)title=title.slice(0,6);
   document.getElementById('chatHeader').innerHTML=
     '<div class="header-left">'
     +'<div class="chat-avatar" style="width:32px;height:32px;font-size:12px;">'+esc(initial)+'</div>'
