@@ -1017,37 +1017,70 @@ class BossAutomation(BossScraper):
     def read_chat_header_info(self) -> dict:
         """读取当前聊天窗口头部岗位信息。
 
-        BOSS 直聘 DOM 结构（已确认）：
-          .chat-position-content > .position-main > .position-content > .left-content
-            > span.position-name   → 岗位名称（如"小红书运营"）
-            > span.salary         → 薪资（如"5-7K"）
-            > span.city           → 城市（如"广州"）
+        BOSS 直聘 DOM 结构：
+          .position-content 内包含 .position-name / .salary / .city
+        先做诊断输出，确认选择器是否能命中。
         """
         try:
             info = self.page.evaluate("""() => {
-                const result = { jobTitle: '', salary: '', city: '' };
+                const result = { jobTitle: '', salary: '', city: '', _debug: '' };
 
-                // 用精确的 class 选择器直接取值
-                const posName = document.querySelector('.position-content .position-name');
-                if (posName) result.jobTitle = (posName.innerText || '').trim();
+                // 诊断1：查 .position-content 是否存在，输出其 innerText
+                const pc = document.querySelector('.position-content');
+                if (pc) {
+                    result._debug += 'position-content存在, text=' + (pc.innerText||'').trim().slice(0,80) + '; ';
+                } else {
+                    result._debug += 'position-content不存在; ';
+                }
 
-                const sal = document.querySelector('.position-content .salary');
-                if (sal) result.salary = (sal.innerText || '').trim();
+                // 诊断2：查 .position-name 是否存在
+                const pn = document.querySelector('.position-name');
+                if (pn) {
+                    result._debug += 'position-name存在, text=' + (pn.innerText||'').trim().slice(0,40) + '; ';
+                    result.jobTitle = (pn.innerText || '').trim();
+                } else {
+                    result._debug += 'position-name不存在; ';
+                }
 
-                const city = document.querySelector('.position-content .city');
-                if (city) result.city = (city.innerText || '').trim();
+                // 诊断3：查 .salary 是否存在
+                const sal = document.querySelector('.salary');
+                if (sal) {
+                    result._debug += 'salary存在, text=' + (sal.innerText||'').trim().slice(0,20) + '; ';
+                    result.salary = (sal.innerText || '').trim();
+                } else {
+                    result._debug += 'salary不存在; ';
+                }
+
+                // 诊断4：查 .city 是否存在
+                const cityEl = document.querySelector('.city');
+                if (cityEl) {
+                    result._debug += 'city存在, text=' + (cityEl.innerText||'').trim().slice(0,20) + '; ';
+                    result.city = (cityEl.innerText || '').trim();
+                } else {
+                    result._debug += 'city不存在; ';
+                }
+
+                // 诊断5：如果上面都取不到，扫描整个页面中所有含 position/salary/city 的 class
+                if (!result.jobTitle && !result.salary && !result.city) {
+                    const allEls = document.querySelectorAll('[class*="position"], [class*="salary"], [class*="city"]');
+                    const found = [];
+                    allEls.forEach(el => {
+                        const t = (el.innerText || '').trim().slice(0, 30);
+                        if (t && t.length < 50) found.push('.' + el.className.split(' ').join('.') + '=>' + t);
+                    });
+                    result._debug += '全页扫描: ' + found.join(' | ');
+                }
 
                 return result;
             }""")
 
+            _debug = info.get('_debug', '') if info else ''
             job_title = (info.get('jobTitle') or '') if info else ''
             salary = (info.get('salary') or '') if info else ''
             city = (info.get('city') or '') if info else ''
 
-            if any([job_title, salary, city]):
-                print(f"  [header] 岗位={job_title}, 薪资={salary}, 城市={city}")
-            else:
-                print(f"  [header] 未提取到岗位信息")
+            print(f"  [header诊断] {_debug}")
+            print(f"  [header结果] 岗位={job_title!r}, 薪资={salary!r}, 城市={city!r}")
 
             return info or {'jobTitle': '', 'salary': '', 'city': ''}
         except Exception as e:
