@@ -1026,6 +1026,20 @@ class BossAutomation(BossScraper):
             info = self.page.evaluate("""() => {
                 const result = { jobTitle: '', salary: '', city: '' };
 
+                // 诊断：先打印聊天头部区域的完整 HTML（帮助调试 class 名）
+                // 查找聊天窗口右侧头部区域
+                const headerCandidates = document.querySelectorAll(
+                    '.chat-header, .header-area, .detail-header, .info-area, [class*="header"], [class*="detail"]'
+                );
+                // 收集所有 class 包含 position/name/city/salary 的元素
+                const allEls = document.querySelectorAll('[class*="position"], [class*="job"], [class*="city"], [class*="salary"], [class*="name"]');
+                const classDebug = [];
+                allEls.forEach(el => {
+                    const t = (el.innerText || '').trim().slice(0, 30);
+                    if (t) classDebug.push(el.className + ' => ' + t);
+                });
+                result._debug = classDebug.join(' | ');
+
                 // 岗位名：直接查 .position-name
                 const posName = document.querySelector('.position-name');
                 if (posName) {
@@ -1048,6 +1062,10 @@ class BossAutomation(BossScraper):
 
                 return result;
             }""")
+            # 打印诊断信息
+            _debug = info.get('_debug', '') if info else ''
+            print(f"  [header诊断] class映射: {_debug}")
+            print(f"  [header诊断] 结果: jobTitle={info.get('jobTitle')!r}, salary={info.get('salary')!r}, city={info.get('city')!r}")
             return info or {'jobTitle': '', 'salary': '', 'city': ''}
         except Exception as e:
             print(f"  ⚠️ read_chat_header_info 异常: {e}")
@@ -1755,36 +1773,36 @@ class BossAutomation(BossScraper):
 
             if clean_msgs:
                 replace_conversation_messages(conv_id, clean_msgs)
-                # 更新在线状态和岗位信息（从精确 class 提取）
-                try:
-                    from boss_state import get_db
-                    db = get_db()
-                    updates = []
-                    params = []
-                    if online_status:
-                        updates.append("online_status=?")
-                        params.append(online_status)
-                    # 岗位名：.position-name 精确提取，每次覆盖
-                    _jt = (header_info.get('jobTitle') or '').strip()
-                    if _jt:
-                        updates.append("job_title=?")
-                        params.append(_jt)
-                    # 薪资：.position-name 下一兄弟 span
-                    _sal = (header_info.get('salary') or '').strip()
-                    if _sal:
-                        updates.append("salary=?")
-                        params.append(_sal)
-                    # 城市：.city
-                    _city = (header_info.get('city') or '').strip()
-                    if _city:
-                        updates.append("city=?")
-                        params.append(_city)
-                    if updates:
-                        params.append(conv_id)
-                        db.execute(f"UPDATE conversations SET {', '.join(updates)} WHERE id=?", params)
-                        db.commit()
-                except Exception:
-                    pass
+
+            # 无论是否有消息，都更新在线状态和岗位信息（从精确 class 提取）
+            # 注意：必须在 if clean_msgs 之外，否则没消息时不更新
+            try:
+                from boss_state import get_db
+                db = get_db()
+                updates = []
+                params = []
+                if online_status:
+                    updates.append("online_status=?")
+                    params.append(online_status)
+                # 岗位名/薪资/城市：有值就覆盖，无值不更新（保留旧值）
+                _jt = (header_info.get('jobTitle') or '').strip()
+                if _jt:
+                    updates.append("job_title=?")
+                    params.append(_jt)
+                _sal = (header_info.get('salary') or '').strip()
+                if _sal:
+                    updates.append("salary=?")
+                    params.append(_sal)
+                _city = (header_info.get('city') or '').strip()
+                if _city:
+                    updates.append("city=?")
+                    params.append(_city)
+                if updates:
+                    params.append(conv_id)
+                    db.execute(f"UPDATE conversations SET {', '.join(updates)} WHERE id=?", params)
+                    db.commit()
+            except Exception:
+                pass
                 last_msg = clean_msgs[-1]
                 # 过滤BOSS系统通知：这类消息不算真正的HR回复，不应更新 last_message_from
                 _system_prefixes = (
