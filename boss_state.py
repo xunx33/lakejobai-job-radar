@@ -53,6 +53,7 @@ def init_db():
             application_id INTEGER REFERENCES applications(id),
             hr_name TEXT NOT NULL,
             hr_company TEXT,
+            hr_title TEXT,
             job_title TEXT,
             last_message_text TEXT,
             last_message_from TEXT,
@@ -63,6 +64,7 @@ def init_db():
             interest_level TEXT,
             hr_wechat TEXT,
             wechat_shared_at TIMESTAMP,
+            online_status TEXT DEFAULT '',
             resume_sent INTEGER DEFAULT 0,
             phone_shared INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -76,6 +78,7 @@ def init_db():
             content TEXT NOT NULL,
             delivery_status TEXT,
             ai_generated INTEGER DEFAULT 0,
+            platform_time TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -98,6 +101,10 @@ def init_db():
     except sqlite3.OperationalError:
         pass
     try:
+        db.execute("ALTER TABLE messages ADD COLUMN platform_time TIMESTAMP")
+    except sqlite3.OperationalError:
+        pass
+    try:
         db.execute("ALTER TABLE conversations ADD COLUMN interest_level TEXT")
     except sqlite3.OperationalError:
         pass
@@ -115,6 +122,22 @@ def init_db():
         pass
     try:
         db.execute("ALTER TABLE conversations ADD COLUMN phone_shared INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE conversations ADD COLUMN online_status TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE conversations ADD COLUMN hr_title TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE conversations ADD COLUMN salary TEXT")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        db.execute("ALTER TABLE conversations ADD COLUMN city TEXT")
     except sqlite3.OperationalError:
         pass
     # CHANGES.md §1 §4: 公司去重 + HR 活跃度列
@@ -182,8 +205,8 @@ def init_db():
         "batch_delay_max_sec": "90",
         "resume_summary": "",
         "wechat_id": "",
-        "search_keywords": "AI Agent,大模型开发,AI产品经理,RAG开发,大模型应用",
-        "default_city": "淄博",
+        "search_keywords": "",
+        "default_city": "全国",
         "max_hr_inactive_days": "7",
         "filter_inactive_hr": "true",
         "dedup_company_by_default": "true",
@@ -599,7 +622,12 @@ def count_hours_replied_in_range(hours: int) -> int:
     row = (
         get_db()
         .execute(
-            "SELECT COUNT(*) as cnt FROM conversations WHERE last_message_from='hr' AND datetime(last_message_at) > datetime('now','localtime',? || ' hours')",
+            """SELECT COUNT(*) as cnt FROM conversations 
+               WHERE last_message_from='hr' 
+               AND datetime(COALESCE(
+                   (SELECT platform_time FROM messages WHERE conversation_id=conversations.id AND sender='hr' ORDER BY id DESC LIMIT 1),
+                   last_message_at
+               )) > datetime('now','localtime',? || ' hours')""",
             (f"-{hours}",),
         )
         .fetchone()
@@ -628,22 +656,30 @@ def get_pending_applications(limit: int = 50) -> List[dict]:
 # ══════════════════════════════════════
 
 
-def get_or_create_conversation(application_id: int, hr_name: str, hr_company: str, job_title: str) -> int:
+def get_or_create_conversation(application_id: int, hr_name: str, hr_company: str, job_title: str, hr_title: str = '') -> int:
     db = get_db()
     if application_id:
         row = db.execute("SELECT id FROM conversations WHERE application_id=?", (application_id,)).fetchone()
         if row:
+            # 更新 hr_title 如果为空
+            if hr_title:
+                db.execute("UPDATE conversations SET hr_title=? WHERE id=?", (hr_title, row["id"]))
+                db.commit()
             return row["id"]
     # 按 HR 名字查重（精确匹配，去空白）
     name = hr_name.strip() if hr_name else ""
     if name:
         row = db.execute("SELECT id FROM conversations WHERE hr_name=? AND status!='closed'", (name,)).fetchone()
         if row:
+            # 更新 hr_title 如果为空
+            if hr_title:
+                db.execute("UPDATE conversations SET hr_title=? WHERE id=?", (hr_title, row["id"]))
+                db.commit()
             return row["id"]
     cur = db.execute(
-        """INSERT INTO conversations (application_id, hr_name, hr_company, job_title)
-           VALUES (?, ?, ?, ?)""",
-        (application_id, name, hr_company, job_title),
+        """INSERT INTO conversations (application_id, hr_name, hr_company, job_title, hr_title)
+           VALUES (?, ?, ?, ?, ?)""",
+        (application_id, name, hr_company, job_title, hr_title),
     )
     db.commit()
     return cur.lastrowid
@@ -814,14 +850,28 @@ def replace_conversation_messages(conversation_id: int, messages: List[dict]):
         sender = msg.get("sender", "hr")
         content = (msg.get("content") or "").strip()
         delivery_status = (msg.get("status") or msg.get("delivery_status") or "").strip()
+        platform_time = (msg.get("time") or "").strip() or None
         if not content:
             continue
         ai_generated = 1 if sender == "me" and content in old_ai else 0
         db.execute(
-            "INSERT INTO messages (conversation_id, sender, content, delivery_status, ai_generated) VALUES (?, ?, ?, ?, ?)",
-            (conversation_id, sender, content, delivery_status, ai_generated),
+            "INSERT INTO messages (conversation_id, sender, content, delivery_status, ai_generated, platform_time) VALUES (?, ?, ?, ?, ?, ?)",
+            (conversation_id, sender, content, delivery_status, ai_generated, platform_time),
         )
     db.commit()
+    # 更新会话的 last_message_at 为最新的平台时间（如果有）
+    if messages:
+        last = messages[-1]
+        last_time = (last.get("time") or "").strip()
+        if last_time:
+            try:
+                db.execute(
+                    "UPDATE conversations SET last_message_at=? WHERE id=?",
+                    (last_time, conversation_id),
+                )
+                db.commit()
+            except Exception:
+                pass
 
 
 def get_last_hr_message(conversation_id: int) -> Optional[dict]:

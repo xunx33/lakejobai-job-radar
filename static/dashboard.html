@@ -2365,13 +2365,17 @@ function loadConversations(){
     if(!conversations.length){list.innerHTML='<div class="empty"><div class="empty-icon">💬</div>暂无会话</div>';return;}
     list.innerHTML=conversations.map(c=>{
       const initial=(c.hr_name||'?').slice(0,1).toUpperCase();
-      // 岗位名：后端已用精确 DOM class 提取，前端直接显示
+      // 岗位信息：岗位名 · 薪资 · 城市
       let jobTitle=c.job_title||'';
       if(/^\d+$/.test(jobTitle))jobTitle='';
+      const salary=c.salary||'';
+      const city=c.city||'';
+      const jobParts=[jobTitle,salary,city].filter(Boolean);
+      const jobLine=jobParts.length?jobParts.join(' · '):'';
       return'<div class="chat-list-item'+(activeConvId===c.id?' active':'')+'" onclick="selectConversation('+c.id+')">'
         +'<div class="chat-avatar">'+esc(initial)+'</div>'
         +'<div class="info">'
-        +'<div class="name-row"><div class="name"><span class="name-text">'+esc(c.hr_name||'未知')+'</span>'+(jobTitle?'<span class="job-inline">'+esc(jobTitle)+'</span>':'')+(c.last_message_from==='hr'&&Date.now()-new Date(c.last_message_at).getTime()<86400000?'<span class="reply-dot"></span>':'')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
+        +'<div class="name-row"><div class="name"><span class="name-text">'+esc(c.hr_name||'未知')+'</span>'+(jobLine?'<span class="job-inline">'+esc(jobLine)+'</span>':'')+(c.last_message_from==='hr'&&Date.now()-new Date(c.last_message_at).getTime()<86400000?'<span class="reply-dot"></span>':'')+'</div>'+(c.unread_count>0?'<span class="unread">'+c.unread_count+'</span>':'')+'</div>'
         +'<div class="preview">'+esc((c.last_message_text||'').slice(0,40))+'</div>'
         +'</div></div>';
     }).join('');
@@ -2383,16 +2387,21 @@ function selectConversation(id){
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
   // 只保留岗位名（后端从 .position-name 精确 class 提取）
   const jobTitle=conv.job_title||'';
+  const salary=conv.salary||'';
+  const city=conv.city||'';
+  // 第二行拼装：岗位名 · 薪资 · 城市
+  const parts=[jobTitle,salary,city].filter(Boolean);
+  const subLine=parts.length?parts.join(' · '):'';
   document.getElementById('chatHeader').innerHTML=
     '<div class="header-left">'
     +'<div class="chat-avatar" style="width:32px;height:32px;font-size:12px;">'+esc(initial)+'</div>'
     +'<div class="info">'
-    /* 第一行：只显示HR名字（去重） */
+    /* 第一行：HR名字 + 在线状态 */
     +'<div class="name-row"><span class="name">'+esc(conv.hr_name||'未知')+'</span>'
     +(conv.online_status?'<span class="online-badge'+(conv.online_status==='离线'?' offline':'')+'">'+esc(conv.online_status)+'</span>':'')
     +'</div>'
-    /* 第二行：岗位名（来自 .position-name 精确提取） */
-    +(jobTitle?'<div class="job-row">'+esc(jobTitle)+'</div>':'')
+    /* 第二行：岗位名 · 薪资 · 城市 */
+    +(subLine?'<div class="job-row">'+esc(subLine)+'</div>':'')
     +'</div></div>'
     +'<div class="header-right">'
     +'<button class="btn btn-sm" id="btnAutoReplyToggle" onclick="toggleAutoReply()">'+(conv.auto_reply_enabled?'暂停当前自动回复':'开启当前自动回复')+'</button>'

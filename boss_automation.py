@@ -1015,38 +1015,36 @@ class BossAutomation(BossScraper):
             return ''
 
     def read_chat_header_info(self) -> dict:
-        """读取当前聊天窗口头部的岗位信息。
+        """读取当前聊天窗口头部岗位信息（第二行）。
 
-        只提取第二行 .position-content 区域内有精确 class 的字段：
-          - .position-name  → 岗位名称（精确）
-          - position-name 后的兄弟 span → 薪资
-          - .city           → 城市（精确）
-        不再从 base-info 提取公司/职位（无可靠 class，易混入'更多'等噪音）。
+        直接用精确 class 查找，不猜父容器：
+          - .position-name  → 岗位名称
+          - .position-name 的下一个兄弟 span → 薪资
+          - .city           → 城市
         """
         try:
             info = self.page.evaluate("""() => {
                 const result = { jobTitle: '', salary: '', city: '' };
 
-                // 精确从 .position-content 提取（第二行岗位信息区）
-                const posContent = document.querySelector('.position-content');
-                if (posContent) {
-                    // 岗位名
-                    const nameEl = posContent.querySelector('.position-name');
-                    if (nameEl) result.jobTitle = (nameEl.innerText || '').trim();
-                    // 薪资：position-name 后面的第一个非空 span
-                    const allSpans = Array.from(posContent.querySelectorAll('span'));
-                    let foundName = false;
-                    for (const s of allSpans) {
-                        if (s.classList.contains('position-name')) { foundName = true; continue; }
-                        if (foundName && !s.classList.contains('city')) {
-                            const t = (s.innerText || '').trim();
-                            if (t) { result.salary = t; break; }
+                // 岗位名：直接查 .position-name
+                const posName = document.querySelector('.position-name');
+                if (posName) {
+                    result.jobTitle = (posName.innerText || '').trim();
+                    // 薪资：.position-name 的下一个非空兄弟元素
+                    let next = posName.nextElementSibling;
+                    while (next) {
+                        const t = (next.innerText || '').trim();
+                        if (t && !next.classList.contains('city')) {
+                            result.salary = t;
+                            break;
                         }
+                        next = next.nextElementSibling;
                     }
-                    // 城市
-                    const cityEl = posContent.querySelector('.city');
-                    if (cityEl) result.city = (cityEl.innerText || '').trim();
                 }
+
+                // 城市：直接查 .city
+                const cityEl = document.querySelector('.city');
+                if (cityEl) result.city = (cityEl.innerText || '').trim();
 
                 return result;
             }""")
@@ -1744,7 +1742,7 @@ class BossAutomation(BossScraper):
             msgs = self.read_visible_messages()
             online_status = self.read_chat_online_status()
             header_info = self.read_chat_header_info()
-            print(f"  [监控] 会话 {matched_conv.get('hr_name')}: 读到 {len(msgs)} 条消息, 在线状态: {online_status}")
+            print(f"  [监控] 会话 {matched_conv.get('hr_name')}: 读到 {len(msgs)} 条消息, 在线={online_status}, header={header_info}")
 
             new_count = 0
             clean_msgs = []
@@ -1757,7 +1755,7 @@ class BossAutomation(BossScraper):
 
             if clean_msgs:
                 replace_conversation_messages(conv_id, clean_msgs)
-                # 更新在线状态和岗位信息（只从 .position-content 精确 class 提取）
+                # 更新在线状态和岗位信息（从精确 class 提取）
                 try:
                     from boss_state import get_db
                     db = get_db()
@@ -1771,6 +1769,16 @@ class BossAutomation(BossScraper):
                     if _jt:
                         updates.append("job_title=?")
                         params.append(_jt)
+                    # 薪资：.position-name 下一兄弟 span
+                    _sal = (header_info.get('salary') or '').strip()
+                    if _sal:
+                        updates.append("salary=?")
+                        params.append(_sal)
+                    # 城市：.city
+                    _city = (header_info.get('city') or '').strip()
+                    if _city:
+                        updates.append("city=?")
+                        params.append(_city)
                     if updates:
                         params.append(conv_id)
                         db.execute(f"UPDATE conversations SET {', '.join(updates)} WHERE id=?", params)
