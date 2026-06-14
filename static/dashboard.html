@@ -2387,13 +2387,23 @@ function selectConversation(id){
   // 清理公司名和职位（去噪）
   let company=conv.hr_company||'';
   let title=conv.hr_title||'';
-  // 过滤掉明显是垃圾数据的文本
+  // 噪音词列表（精确匹配 + 子串检测）
   const exactNoise=['更多','在线','离线','忙碌','设置','备注','暂停','开启','投递','打招呼','收藏','举报','屏蔽','查看','返回','关闭','菜单','继续沟通','新对话','系统','通知','BOSS','简历','附件','上传','制作','更新','AI'];
+  const subNoise=['更多','在线','离线','忙碌','人事主管','人事经理','人事专员','招聘主管','招聘经理','招聘专员']; // 常见hr_title不应出现在company里
+  // 精确匹配过滤
   if(exactNoise.includes(company))company='';
   if(exactNoise.includes(title))title='';
+  // 子串噪音检测：如果 company 包含噪音词且长度>8，尝试截断
+  if(company && company.length>8){
+    for(const n of subNoise){if(company.includes(n)){company=company.replace(n,'').replace(/\s+/g,' ').trim();break;}}
+    for(const n of exactNoise){if(company.includes(n)){company=company.replace(n,'').replace(/\s+/g,' ').trim();break;}}
+  }
   // 过滤掉纯数字
   if(/^\d+$/.test(company))company='';
   if(/^\d+$/.test(title))title='';
+  // 最终长度保护：公司名不超过8字，职位不超过6字
+  if(company && company.length>8)company=company.slice(0,8);
+  if(title && title.length>6)title=title.slice(0,6);
   document.getElementById('chatHeader').innerHTML=
     '<div class="header-left">'
     +'<div class="chat-avatar" style="width:32px;height:32px;font-size:12px;">'+esc(initial)+'</div>'

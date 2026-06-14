@@ -775,33 +775,83 @@ class BossAutomation(BossScraper):
                         }""")
                             or ""
                         )
-                    # 提取公司和职位信息
+                    # 提取公司和职位信息 — 用 JS 精确提取（CSS 选择器不可靠）
                     hr_company = ""
                     hr_title = ""
+                    job_title = ""
                     try:
-                        company_el = el.locator('[class*="company"], [class*="company-name"]').first
-                        if company_el:
-                            hr_company = company_el.inner_text().strip()
+                        _extracted = el.evaluate("""(el) => {
+                            const result = { company: '', title: '', jobTitle: '' };
+                            const noise = ['更多','在线','离线','忙碌','查看职位','查看','返回','关闭',
+                                '设置','备注','暂停','开启','投递','打招呼','收藏','举报',
+                                '屏蔽','菜单','继续沟通','新对话','系统','通知','BOSS','简历'];
+                            // 方式1: 从 name-content 内部的 span 序列提取
+                            const nc = el.querySelector('.name-content') || el;
+                            const spans = Array.from(nc.querySelectorAll(':scope > span, :scope > i + span, :scope > span + span'));
+                            for (let i = 0; i < spans.length; i++) {
+                                const t = (spans[i].innerText || '').trim();
+                                if (!t || t.length < 2 || noise.some(n => t === n || t.startsWith(n))) continue;
+                                // 跳过 .name-text / .name-content 自身
+                                if (spans[i].classList.contains('name-text') ||
+                                    spans[i].classList.contains('name-content')) continue;
+                                // 第一个有效 span 通常是公司名
+                                if (!result.company && t.length >= 2 && t.length <= 15 &&
+                                    !/^\\d/.test(t) && !noise.includes(t)) {
+                                    result.company = t;
+                                    continue;
+                                }
+                                // 后续可能是招聘者职位
+                                if (!result.title && t.length >= 2 && t.length <= 10 &&
+                                    !/^\\d/.test(t)) {
+                                    result.title = t;
+                                }
+                            }
+                            // 方式2: 从第二行文本提取岗位名（通常含薪资或城市关键词）
+                            const lines = (el.innerText || '').split('\\n').map(l => l.trim()).filter(Boolean);
+                            for (const line of lines) {
+                                if (/\\d+K|\\d+k|万\/月|元\/月|^\d+-\d+岁|^\d+年|^\d+-\d+/.test(line)) {
+                                    // 这一行是岗位信息行，取第一个非数字片段作为岗位名
+                                    const parts = line.split(/\\s+/).filter(p =>
+                                        p && !/^\\d/.test(p) && !/^[·|｜]/.test(p) &&
+                                        p !== '广州' && p !== '深圳' && p !== '北京' &&
+                                        p !== '上海' && p !== '杭州' && p !== '成都' &&
+                                        noise.indexOf(p) === -1
+                                    );
+                                    if (parts.length > 0 && parts[0].length >= 2 && parts[0].length <= 20) {
+                                        result.jobTitle = parts[0];
+                                    }
+                                    break;
+                                }
+                            }
+                            return result;
+                        }""") or {}
+                        hr_company = (_extracted.get("company") or "").strip()
+                        hr_title = (_extracted.get("title") or "").strip()
+                        job_title = (_extracted.get("jobTitle") or "").strip()
                     except Exception:
-                        pass
-                    try:
-                        title_el = el.locator('[class*="title"], [class*="position"]').first
-                        if title_el:
-                            hr_title = title_el.inner_text().strip()
-                    except Exception:
-                        pass
+                        # 兜底：用原有 CSS 选择器
+                        try:
+                            company_el = el.locator('[class*="company"], [class*="company-name"]').first
+                            if company_el:
+                                hr_company = company_el.inner_text().strip()
+                        except Exception:
+                            pass
+                        try:
+                            title_el = el.locator('.base-title').first
+                            if title_el:
+                                hr_title = title_el.inner_text().strip()
+                        except Exception:
+                            pass
+                        try:
+                            job_el = el.locator('[class*="job-name"], [class*="position-name"], [class*="job-info"]').first
+                            if job_el:
+                                job_title = job_el.inner_text().strip()
+                        except Exception:
+                            pass
                     has_unread = False
                     try:
                         badge = el.locator('.red-dot, [class*="unread"]').first
                         has_unread = badge.is_visible()
-                    except Exception:
-                        pass
-                    # 提取岗位名（从会话列表 DOM 中）
-                    job_title = ""
-                    try:
-                        job_el = el.locator('[class*="position"], [class*="job"], [class*="title"]').first
-                        if job_el:
-                            job_title = job_el.inner_text().strip()
                     except Exception:
                         pass
                     conversations.append(
@@ -1711,7 +1761,24 @@ class BossAutomation(BossScraper):
                         except Exception:
                             pass
 
-            # 从会话文本里提取公司名（格式：HR名+公司名+岗位）
+            # 从会话文本里提取公司名/职位（仅当 DOM 提取失败时兜底）
+            _noise_words = ("更多", "在线", "离线", "忙碌", "查看职位", "查看",
+                           "返回", "关闭", "设置", "备注", "暂停", "开启",
+                           "投递", "打招呼", "收藏", "举报", "屏蔽",
+                           "菜单", "继续沟通", "新对话", "系统", "通知")
+
+            # 补充公司名
+            if not matched_conv.get("hr_company") and conv_data.get("hr_company"):
+                _c = conv_data["hr_company"].strip()
+                if len(_c) >= 2 and len(_c) <= 15 and _c not in _noise_words and not _c.isdigit():
+                    try:
+                        from boss_state import get_db as _gdb3
+
+                        _gdb3().execute("UPDATE conversations SET hr_company=? WHERE id=?", (_c, conv_id))
+                        _gdb3().commit()
+                        matched_conv["hr_company"] = _c
+                    except Exception:
+                        pass
             if not matched_conv.get("hr_company"):
                 company_info = text.split("\n")[0] if "\n" in text else text
                 import re as _re3
@@ -1719,19 +1786,31 @@ class BossAutomation(BossScraper):
                 hr_name_part = matched_conv.get("hr_name", "")
                 if hr_name_part and len(hr_name_part) >= 2:
                     company_info = company_info.replace(hr_name_part, "", 1)
-                # 去掉时间/状态/括号等
-                company_info = _re3.sub(r"\d{1,2}:\d{2}|\[.*?\]|送达|已读|未读", "", company_info)
-                # 提取公司名（纯中文 4-12字）
-                m = _re3.search(r"[\u4e00-\u9fa5]{4,12}", company_info)
-                if m:
+                # 去掉时间/状态/括号/噪音词
+                company_info = _re3.sub(r"\d{1,2}:\d{2}|\[.*?\]|送达|已读|未读|" + "|".join(_re3.escape(w) for w in _noise_words), "", company_info)
+                # 提取公司名（纯中文 2-8 字，更精确）
+                m = _re3.search(r"[\u4e00-\u9fa5]{2,8}", company_info)
+                if m and m.group() not in _noise_words:
                     company = m.group()
                     try:
-                        from boss_state import get_db as _gdb3
+                        from boss_state import get_db as _gdb3b
 
-                        _gdb3().execute("UPDATE conversations SET hr_company=? WHERE id=?", (company, conv_id))
-                        _gdb3().commit()
+                        _gdb3b().execute("UPDATE conversations SET hr_company=? WHERE id=?", (company, conv_id))
+                        _gdb3b().commit()
                         matched_conv["hr_company"] = company
-                        print(f"  [监控] 提取公司名: {company}")
+                    except Exception:
+                        pass
+
+            # 补充招聘者职位
+            if not matched_conv.get("hr_title") and conv_data.get("hr_title"):
+                _t = conv_data["hr_title"].strip()
+                if len(_t) >= 2 and len(_t) <= 10 and _t not in _noise_words and not _t.isdigit():
+                    try:
+                        from boss_state import get_db as _gdb5
+
+                        _gdb5().execute("UPDATE conversations SET hr_title=? WHERE id=?", (_t, conv_id))
+                        _gdb5().commit()
+                        matched_conv["hr_title"] = _t
                     except Exception:
                         pass
 
