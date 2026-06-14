@@ -775,13 +775,35 @@ class BossAutomation(BossScraper):
                         }""")
                             or ""
                         )
-                    # 只提取有精确 class 的岗位名，不再提取公司/职位（base-info 无可靠 class）
+                    # 提取岗位名：优先精确 class，兜底用文本匹配
                     job_title = ""
                     try:
-                        job_title = (el.evaluate("""(el) => {
-                            const el2 = el.querySelector('.position-name, .job-name');
-                            return el2 ? (el2.innerText || '').trim() : '';
+                        _jt = (el.evaluate("""(el) => {
+                            // 优先：精确 class
+                            let el2 = el.querySelector('.position-name, .job-name');
+                            if (el2) return (el2.innerText || '').trim();
+                            // 兜底：从 innerText 第二行找岗位名（格式：HR名\n公司名\n岗位名...）
+                            const lines = (el.innerText || '').split('\\n').map(l=>l.trim()).filter(Boolean);
+                            // 跳过 HR 名（第一行）和时间行
+                            for (let i = 1; i < lines.length; i++) {
+                                const line = lines[i];
+                                // 跳过纯数字、时间、状态标签
+                                if (/^\\d/.test(line)) continue;
+                                if (/^\\d{1,2}:\\d{2}/.test(line)) continue;
+                                if (/^\\[.+\\]$/.test(line)) continue;
+                                // 岗位名特征：2-15字，可能包含"运营""专员""经理""助理"等关键词
+                                const jobKeywords = ['运营','专员','经理','助理','主管','总监','编辑','设计',
+                                    '开发','工程师','销售','客服','文案','策划','推广','主播','摄影',
+                                    '剪辑','行政','人事','财务','会计','出纳','采购','物流','仓储',
+                                    '教师','培训','咨询','分析','产品','前端','后端','测试','运维'];
+                                if (line.length >= 2 && line.length <= 15 && jobKeywords.some(k => line.includes(k))) {
+                                    return line;
+                                }
+                            }
+                            return '';
                         }""") or "").strip()
+                        if _jt and len(_jt) >= 2:
+                            job_title = _jt
                     except Exception:
                         pass
                     has_unread = False
