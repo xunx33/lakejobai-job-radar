@@ -150,7 +150,7 @@ def _merge_selectors():
 _merge_selectors()
 
 # ── 绝对上限 ──
-MAX_APPLY_PER_DAY = 30
+MAX_APPLY_PER_DAY = 50
 MAX_AUTO_REPLY_PER_DAY = 200
 
 
@@ -488,11 +488,12 @@ class BossAutomation(BossScraper):
             app_record = get_application_by_url(job_url) or {}
             hr_name = hr_name or app_record.get("hr_name", "")
             hr_company = app_record.get("company", "")
+            hr_title = app_record.get("hr_title", "")
             job_title = app_record.get("job_title", "")
 
             # 只创建有 HR 名字的会话，避免"未知HR"垃圾数据
             if hr_name and len(hr_name) >= 2:
-                get_or_create_conversation(app_id, hr_name, hr_company, job_title)
+                get_or_create_conversation(app_id, hr_name, hr_company, job_title, hr_title)
 
             increment_daily_stat("applications_sent")
             print(f"  ✅ 投递成功")
@@ -710,6 +711,38 @@ class BossAutomation(BossScraper):
         except Exception:
             return False
 
+    def switch_to_all_conversations(self) -> bool:
+        """切换到「全部」会话标签。"""
+        try:
+            for sel in ['span.label-name:has-text("全部")', 'li:has-text("全部")', '.label-name:has-text("全部")']:
+                try:
+                    tab = self.page.locator(sel).first
+                    if tab.is_visible():
+                        tab.click()
+                        pause(1, 2)
+                        return True
+                except Exception:
+                    pass
+            return False
+        except Exception:
+            return False
+
+    def switch_to_unread_conversations(self) -> bool:
+        """切换到「未读」会话标签。"""
+        try:
+            for sel in ['span.label-name:has-text("未读")', 'li:has-text("未读")', '.label-name:has-text("未读")']:
+                try:
+                    tab = self.page.locator(sel).first
+                    if tab.is_visible():
+                        tab.click()
+                        pause(1, 2)
+                        return True
+                except Exception:
+                    pass
+            return False
+        except Exception:
+            return False
+
     def poll_conversation_list(self) -> List[dict]:
         """从 BOSS 聊天页 DOM 获取会话列表。DOM 失败用 body text 正则兜底。"""
         conversations = []
@@ -742,10 +775,33 @@ class BossAutomation(BossScraper):
                         }""")
                             or ""
                         )
+                    # 提取公司和职位信息
+                    hr_company = ""
+                    hr_title = ""
+                    try:
+                        company_el = el.locator('[class*="company"], [class*="company-name"]').first
+                        if company_el:
+                            hr_company = company_el.inner_text().strip()
+                    except Exception:
+                        pass
+                    try:
+                        title_el = el.locator('[class*="title"], [class*="position"]').first
+                        if title_el:
+                            hr_title = title_el.inner_text().strip()
+                    except Exception:
+                        pass
                     has_unread = False
                     try:
                         badge = el.locator('.red-dot, [class*="unread"]').first
                         has_unread = badge.is_visible()
+                    except Exception:
+                        pass
+                    # 提取岗位名（从会话列表 DOM 中）
+                    job_title = ""
+                    try:
+                        job_el = el.locator('[class*="position"], [class*="job"], [class*="title"]').first
+                        if job_el:
+                            job_title = job_el.inner_text().strip()
                     except Exception:
                         pass
                     conversations.append(
@@ -754,6 +810,9 @@ class BossAutomation(BossScraper):
                             "has_unread": has_unread,
                             "element": el,
                             "hr_name": hr_name,
+                            "hr_company": hr_company,
+                            "hr_title": hr_title,
+                            "job_title": job_title,
                         }
                     )
                 except Exception:
@@ -810,6 +869,88 @@ class BossAutomation(BossScraper):
                     const m = (text || '').match(/(^|\\n)\\s*(已读|未读|送达|发送失败|已发送)\\s*(\\n|$)/);
                     return m ? m[2] : '';
                 };
+                // 解析时间文本为 ISO 字符串
+                const parseTime = (text) => {
+                    if (!text) return '';
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const hm = text.match(/(\\d{1,2}):(\\d{2})/);
+                    if (!hm) return '';
+                    const timePart = hm[1].padStart(2,'0') + ':' + hm[2].padStart(2,'0');
+                    // 匹配 "14:30" 格式
+                    if (/^\\d{1,2}:\\d{2}$/.test(text.trim())) {
+                        const d = new Date(today);
+                        d.setHours(parseInt(hm[1]), parseInt(hm[2]), 0, 0);
+                        return d.toISOString();
+                    }
+                    // 匹配 "昨天 14:30" 格式
+                    if (/^昨天/.test(text)) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - 1);
+                        d.setHours(parseInt(hm[1]), parseInt(hm[2]), 0, 0);
+                        return d.toISOString();
+                    }
+                    // 匹配 "06-12 14:30" 或 "2024-06-12 14:30" 格式
+                    const md = text.match(/(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})/);
+                    if (md) {
+                        const d = new Date(parseInt(md[1]), parseInt(md[2]) - 1, parseInt(md[3]), parseInt(hm[1]), parseInt(hm[2]), 0, 0);
+                        return d.toISOString();
+                    }
+                    const md2 = text.match(/(\\d{1,2})[-/](\\d{1,2})\\s/);
+                    if (md2) {
+                        const d = new Date(now.getFullYear(), parseInt(md2[1]) - 1, parseInt(md2[2]), parseInt(hm[1]), parseInt(hm[2]), 0, 0);
+                        return d.toISOString();
+                    }
+                    return '';
+                };
+                // 收集所有时间分隔线和时间戳
+                const timePoints = [];
+                const timeSelectors = [
+                    '[class*="time-divider"]',
+                    '[class*="message-time"]',
+                    '[class*="msg-time"]',
+                    'li[class*="time"]',
+                    '.chat-time',
+                    '[class*="chat"] [class*="time"]',
+                    '[class*="message"] [class*="time"]',
+                    '[class*="msg"] [class*="time"]',
+                ];
+                document.querySelectorAll(timeSelectors.join(', ')).forEach(el => {
+                    if (!visible(el)) return;
+                    const r = el.getBoundingClientRect();
+                    if (r.left + r.width / 2 < vw * 0.35) return;
+                    const text = (el.innerText || '').trim();
+                    const time = parseTime(text);
+                    if (time && text.length < 30) {
+                        timePoints.push({time: time, top: r.top});
+                    }
+                });
+                // 也从消息列表的兄弟元素中查找时间文本
+                const msgContainer = document.querySelector('[class*="chat-list"], [class*="message-list"], [class*="msg-list"]');
+                if (msgContainer) {
+                    msgContainer.querySelectorAll(':scope > li, :scope > div').forEach(el => {
+                        if (!visible(el)) return;
+                        const text = (el.innerText || '').trim();
+                        if (text.length < 30 && /^\\d/.test(text)) {
+                            const r = el.getBoundingClientRect();
+                            const time = parseTime(text);
+                            if (time) {
+                                timePoints.push({time: time, top: r.top});
+                            }
+                        }
+                    });
+                }
+                timePoints.sort((a, b) => a.top - b.top);
+                // 查找最近的时间点
+                const findTime = (msgTop) => {
+                    let best = '';
+                    for (const tp of timePoints) {
+                        if (tp.top <= msgTop) {
+                            best = tp.time;
+                        }
+                    }
+                    return best;
+                };
                 const push = (el, contentEl) => {
                     if (!visible(el)) return;
                     const r = el.getBoundingClientRect();
@@ -822,7 +963,8 @@ class BossAutomation(BossScraper):
                     const cls = el.className || '';
                     const sender = cls.includes('item-myself') || cls.includes('myself') || cls.includes('self') || r.left > vw * 0.52 ? 'me' : 'hr';
                     const status = sender === 'me' ? pickStatus(fullText) : '';
-                    result.push({sender: sender, content: content, status: status});
+                    let time = findTime(r.top);
+                    result.push({sender: sender, content: content, status: status, time: time});
                 };
 
                 document.querySelectorAll('li.message-item, li[class*="message-item"]').forEach(el => push(el));
@@ -835,8 +977,79 @@ class BossAutomation(BossScraper):
         except Exception:
             return []
 
+    def read_chat_online_status(self) -> str:
+        """读取当前聊天窗口的对方在线状态。"""
+        try:
+            status = self.page.evaluate("""() => {
+                // 查找在线状态图片元素
+                const img = document.querySelector('img.chat-online-stats, img[class*="chat-online-stats"]');
+                if (!img) return '';
+                // 通过 alt 或 src 判断状态
+                const alt = (img.alt || '').trim();
+                if (alt) return alt;
+                // 通过图片 src 中的关键词判断
+                const src = (img.src || '').toLowerCase();
+                if (src.includes('online') || src.includes('active')) return '在线';
+                if (src.includes('offline') || src.includes('busy')) return '离线';
+                // 检查父元素的文本
+                const parent = img.parentElement;
+                if (parent) {
+                    const text = (parent.innerText || '').trim();
+                    if (/在线/.test(text)) return '在线';
+                    if (/离线/.test(text)) return '离线';
+                    if (/忙碌/.test(text)) return '忙碌';
+                }
+                // 如果有图片但无法判断，返回"在线"（因为显示图片通常意味着在线）
+                return '在线';
+            }""")
+            return status or ''
+        except Exception:
+            return ''
+
+    def read_chat_header_info(self) -> dict:
+        """读取当前聊天窗口头部的公司和职位信息。"""
+        try:
+            info = self.page.evaluate("""() => {
+                const result = {company: '', title: ''};
+                
+                // 方法1: 从 base-info 容器提取（精确匹配）
+                const baseInfo = document.querySelector('.base-info');
+                if (baseInfo) {
+                    // HR职位：base-title 类
+                    const titleEl = baseInfo.querySelector('.base-title');
+                    if (titleEl) {
+                        result.title = (titleEl.innerText || '').trim();
+                    }
+                    // 公司名：base-info 下直接子 span，排除 base-title
+                    const directSpans = baseInfo.querySelectorAll(':scope > span');
+                    for (const span of directSpans) {
+                        const cls = span.className || '';
+                        const text = (span.innerText || '').trim();
+                        if (cls.includes('base-title')) continue;
+                        if (!text) continue;
+                        result.company = text;
+                        break;
+                    }
+                }
+                
+                // 方法2: 如果 base-info 没找到，尝试 position-name 和 company 相关类
+                if (!result.title) {
+                    const posEl = document.querySelector('.position-name, [class*="position-name"]');
+                    if (posEl) result.title = (posEl.innerText || '').trim();
+                }
+                
+                return result;
+            }""")
+            return info or {'company': '', 'title': ''}
+        except Exception as e:
+            print(f"  ⚠️ read_chat_header_info 异常: {e}")
+            return {'company': '', 'title': ''}
+
     def open_conversation_by_name(self, hr_name: str) -> bool:
-        """在聊天页中按 HR 名字定位并打开对应会话。"""
+        """在聊天页中按 HR 名字定位并打开对应会话。
+        
+        先在当前标签页查找，找不到则切换到「全部」标签查找。
+        """
         try:
             current_url = self.page.url
             if "/web/geek/chat" not in current_url:
@@ -903,6 +1116,72 @@ class BossAutomation(BossScraper):
             if clicked:
                 pause(1, 2)
                 return True
+            
+            # 当前标签没找到，切换到「全部」标签再试一次
+            print(f"  [会话] 当前标签未找到 '{hr_name}'，切换到「全部」标签查找")
+            self.switch_to_all_conversations()
+            pause(1, 2)
+            
+            # 在「全部」标签中重新查找
+            for sel in [
+                f'li[role="listitem"]:has-text("{hr_name}")',
+                f'.user-list li:has-text("{hr_name}")',
+                f'[class*="friend"]:has-text("{hr_name}")',
+                f'text="{hr_name}"',
+            ]:
+                try:
+                    loc = self.page.locator(sel).first
+                    if loc.count() > 0 and loc.is_visible():
+                        loc.click(force=True, timeout=3000)
+                        pause(1, 2)
+                        return True
+                except Exception:
+                    pass
+            
+            # 「全部」标签兜底查找
+            clicked2 = self.page.evaluate(
+                """(name) => {
+                    const visible = el => {
+                        const r = el.getBoundingClientRect();
+                        const s = getComputedStyle(el);
+                        return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden';
+                    };
+                    const candidates = [];
+                    const selectors = [
+                        '.user-list li', 'li[role="listitem"]', '.friend-content',
+                        '[class*="friend"]', '[class*="conversation"]', '[class*="chat-item"]'
+                    ];
+                    document.querySelectorAll(selectors.join(',')).forEach(el => {
+                        const text = (el.innerText || '');
+                        if (text.length < 3 || text.length > 200) return;
+                        if (!text.includes(name)) return;
+                        if (!visible(el)) return;
+                        const rect = el.getBoundingClientRect();
+                        const nameEl = el.querySelector('.name-text, [class*="name"]');
+                        const nameText = (nameEl && nameEl.innerText || '').trim();
+                        const exact = nameText === name || text.split('\\n').some(line => line.trim() === name);
+                        candidates.push({el: el, exact: exact ? 1 : 0, area: rect.width * rect.height, top: rect.top});
+                    });
+                    candidates.sort((a,b) => b.exact - a.exact || a.area - b.area || a.top - b.top);
+                    for (const c of candidates) {
+                        try {
+                            c.el.scrollIntoView({block: 'center'});
+                            const r = c.el.getBoundingClientRect();
+                            const opts = {bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2};
+                            c.el.dispatchEvent(new MouseEvent('mousedown', opts));
+                            c.el.dispatchEvent(new MouseEvent('mouseup', opts));
+                            c.el.dispatchEvent(new MouseEvent('click', opts));
+                            return true;
+                        } catch(e) {}
+                    }
+                    return false;
+                }""",
+                hr_name,
+            )
+            if clicked2:
+                pause(1, 2)
+                return True
+            
             return False
         except Exception as e:
             print(f"  ⚠️ 打开会话失败 ({hr_name}): {e}")
@@ -1406,7 +1685,7 @@ class BossAutomation(BossScraper):
                     continue
 
                 conv_id = get_or_create_conversation(
-                    None, hr_name, conv_data.get("company", ""), conv_data.get("job_title", "")
+                    None, hr_name, conv_data.get("company", ""), conv_data.get("job_title", ""), conv_data.get("hr_title", "")
                 )
                 known_convs = list_active_conversations()
                 matched_conv = get_conversation(conv_id)
@@ -1473,7 +1752,9 @@ class BossAutomation(BossScraper):
                 continue
             pause(1, 2)
             msgs = self.read_visible_messages()
-            print(f"  [监控] 会话 {matched_conv.get('hr_name')}: 读到 {len(msgs)} 条消息")
+            online_status = self.read_chat_online_status()
+            header_info = self.read_chat_header_info()
+            print(f"  [监控] 会话 {matched_conv.get('hr_name')}: 读到 {len(msgs)} 条消息, 在线状态: {online_status}")
 
             new_count = 0
             clean_msgs = []
@@ -1486,6 +1767,27 @@ class BossAutomation(BossScraper):
 
             if clean_msgs:
                 replace_conversation_messages(conv_id, clean_msgs)
+                # 更新在线状态和公司信息
+                try:
+                    from boss_state import get_db
+                    db = get_db()
+                    updates = []
+                    params = []
+                    if online_status:
+                        updates.append("online_status=?")
+                        params.append(online_status)
+                    if header_info.get('company') and not matched_conv.get('hr_company'):
+                        updates.append("hr_company=?")
+                        params.append(header_info['company'])
+                    if header_info.get('title') and not matched_conv.get('hr_title'):
+                        updates.append("hr_title=?")
+                        params.append(header_info['title'])
+                    if updates:
+                        params.append(conv_id)
+                        db.execute(f"UPDATE conversations SET {', '.join(updates)} WHERE id=?", params)
+                        db.commit()
+                except Exception:
+                    pass
                 last_msg = clean_msgs[-1]
                 # 过滤BOSS系统通知：这类消息不算真正的HR回复，不应更新 last_message_from
                 _system_prefixes = (
@@ -1501,8 +1803,7 @@ class BossAutomation(BossScraper):
                 is_system_msg = last_msg.get("sender") == "hr" and len(last_content) <= 80 and any(
                     last_content.startswith(p) for p in _system_prefixes
                 )
-                if not is_system_msg:
-                    update_conversation_last_message(conv_id, last_msg["content"], last_msg["sender"], 0)
+                # 先不更新 last_message，等未回复检测完成后一起更新
 
                 # 从 HR 消息里提取微信号
                 if not matched_conv.get("hr_wechat"):
@@ -1564,6 +1865,20 @@ class BossAutomation(BossScraper):
 
             if unreplied_hr_msg:
                 result["new_messages"] += 1
+
+            # 更新会话最后消息 + 未读计数（合并到一处）
+            if clean_msgs:
+                last_msg = clean_msgs[-1]
+                _system_prefixes2 = (
+                    "你与该职位竞争者PK情况", "竞争力分析", "BOSS安全提示",
+                    "系统消息", "沟通分析", "今日推荐", "该Boss已查看了你的简历",
+                )
+                last_content2 = (last_msg.get("content") or "").strip()
+                is_system_msg2 = last_msg.get("sender") == "hr" and len(last_content2) <= 80 and any(
+                    last_content2.startswith(p) for p in _system_prefixes2
+                )
+                if not is_system_msg2:
+                    update_conversation_last_message(conv_id, last_msg["content"], last_msg["sender"], new_count)
 
             # 自动回复
             auto_reply_enabled = get_setting("auto_reply_enabled", "false") == "true"
@@ -1644,7 +1959,8 @@ class BossAutomation(BossScraper):
                         print(f"  [监控] AI回复: {reply[:60]}...")
                         if self.send_message(reply):
                             add_message(conv_id, "me", reply, ai_generated=True)
-                            update_conversation_last_message(conv_id, reply, "me", 0)
+                            # 回复成功后清零未读计数
+                            update_conversation_last_message(conv_id, reply, "me", -999)
                             increment_daily_stat("auto_replies_sent")
                             result["replies_sent"] += 1
                             if interest:
