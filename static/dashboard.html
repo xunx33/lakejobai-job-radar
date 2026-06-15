@@ -454,6 +454,10 @@ body{
   background:var(--bg-2);border:1px solid var(--border);padding:8px 10px;
   color:var(--text);font-size:12px;font-family:var(--font);border-radius:var(--radius-sm);
   cursor:pointer;transition:all .12s var(--ease);outline:none;
+  overflow:hidden;
+}
+#districtTriggerText{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
 }
 .city-trigger:hover{border-color:var(--border-2)}
 .city-trigger:focus,.city-dropdown.open .city-trigger{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
@@ -1753,7 +1757,7 @@ td a:hover{color:var(--accent)}
             </div>
             <input type="hidden" id="searchCity" value="全国">
           </div>
-          <div class="city-dropdown" id="districtDropdown" style="margin-left:4px;flex-shrink:0;max-width:360px;overflow:hidden;">
+          <div class="city-dropdown" id="districtDropdown" style="margin-left:4px;flex-shrink:1;min-width:100px;max-width:min(360px,40vw);overflow:hidden;">
             <button type="button" class="city-trigger" id="districtTrigger" onclick="toggleDistrictDropdown()">
               <span id="districtTriggerText">区域不限</span><span class="city-arrow">▾</span>
             </button>
@@ -2846,9 +2850,9 @@ function pickDistrict(name,code){
     document.getElementById('districtTrigger').style.width='';
   }else{
     var names=selectedDistricts.map(function(d){return d.name;});
-    var txt=names.join('+');
+    var txt=names.length>2?names.slice(0,2).join('+')+'... (+'+names.length+')':names.join('+');
     document.getElementById('districtTriggerText').textContent=txt;
-    document.getElementById('districtTrigger').style.width='auto';
+    document.getElementById('districtTrigger').style.width='';
   }
   var firstOpt=document.querySelector('#districtPanel .city-opt:not(.district-opt)');
   if(firstOpt)firstOpt.classList.toggle('active',selectedDistricts.length===0);
