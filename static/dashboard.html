@@ -992,7 +992,18 @@ td a:hover{color:var(--accent)}
   flex-direction:column;
   gap:16px;
   min-width:0;
+  position:relative;
 }
+.chat-messages.syncing{pointer-events:none;}
+.chat-messages.syncing .msg-row,
+.chat-messages.syncing .empty{filter:blur(6px);opacity:.4;transition:filter .3s,opacity .3s;}
+.sync-overlay{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  z-index:10;background:rgba(0,0,0,.15);backdrop-filter:blur(2px);
+}
+.sync-overlay .spinner{width:28px;height:28px;border-width:3px;}
+.sync-overlay .sync-text{font-size:13px;color:var(--text-2);letter-spacing:.04em;}
 .msg-row{
   display:flex;
   gap:10px;
@@ -2382,7 +2393,11 @@ function loadConversations(){
   });
 }
 function selectConversation(id){
-  activeConvId=id;loadConversations();loadMessages(id);
+  activeConvId=id;loadConversations();
+  // 显示同步遮罩，不立即加载旧缓存
+  const pane=document.getElementById('chatMessages');
+  pane.classList.add('syncing');
+  pane.innerHTML='<div class="sync-overlay"><div class="spinner"></div><div class="sync-text">同步聊天数据中...</div></div>';
   let conv=conversations.find(c=>c.id===id);if(!conv)return;
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
   // 只保留岗位名（后端从 .position-name 精确 class 提取）
@@ -2411,9 +2426,11 @@ function selectConversation(id){
   syncConversation(id);
 }
 function loadMessages(id){fetch('/api/conversations/'+id+'/messages?limit=100').then(r=>r.json()).then(d=>renderMessages(d.messages||[]));}
-function syncConversation(id){fetch('/api/conversations/'+id+'/sync',{method:'POST'}).then(r=>r.json()).then(d=>{if(activeConvId===id&&d.messages)renderMessages(d.messages);}).catch(()=>{if(activeConvId===id)loadMessages(id);});}
+function syncConversation(id){fetch('/api/conversations/'+id+'/sync',{method:'POST'}).then(r=>r.json()).then(d=>{if(activeConvId===id&&d.messages)renderMessages(d.messages);}).catch(()=>{if(activeConvId===id){let pane=document.getElementById('chatMessages');pane.classList.remove('syncing');loadMessages(id);}});}
 function renderMessages(msgs){
   let pane=document.getElementById('chatMessages');
+  // 清除同步遮罩
+  pane.classList.remove('syncing');
   if(!msgs||!msgs.length){pane.innerHTML='<div class="empty"><div class="empty-icon">💭</div>暂无消息</div>';return;}
   let old=pane.querySelectorAll('.msg-row').length,isNew=msgs.length>old;
   let conv=conversations.find(c=>c.id===activeConvId);
