@@ -1888,7 +1888,9 @@ async def sync_conversation_messages(conv_id: int):
             _jt = (header_info.get('jobTitle') or '').strip()
             _sal = (header_info.get('salary') or '').strip()
             _city = (header_info.get('city') or '').strip()
-            print(f"  [同步] {hr_name} 岗位={_jt}, 薪资={_sal}, 城市={_city}, 在线={online_status}")
+            _parts = [p for p in [_jt, _sal, _city] if p]
+            _job_str = ' · '.join(_parts) if _parts else '-'
+            print(f"  [同步] {hr_name}: {len(live_messages or [])}条消息, 在线={online_status}, 岗位={_job_str}")
             if live_messages:
                 replace_conversation_messages(conv_id, live_messages)
                 # 更新在线状态和公司信息

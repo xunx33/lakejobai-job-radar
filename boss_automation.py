@@ -1029,15 +1029,22 @@ class BossAutomation(BossScraper):
                 if (pn) result.jobTitle = (pn.innerText || '').trim();
                 const sal = document.querySelector('.salary');
                 if (sal) result.salary = (sal.innerText || '').trim();
-                const cityEl = document.querySelector('.city');
-                if (cityEl) result.city = (cityEl.innerText || '').trim();
+                // .city 可能有多个，取 chat-position-content 里的那个
+                const cityEl = document.querySelector('.chat-position-content .city')
+                    || document.querySelector('.position-content .city')
+                    || document.querySelector('.city');
+                if (cityEl) {
+                    result.city = (cityEl.innerText || '').trim();
+                    // 诊断：记录 city 元素的完整信息
+                    result._cityDebug = `class=${cityEl.className}, text=${result.city}, data=${JSON.stringify(cityEl.dataset||{})}`;
+                }
                 return result;
             }""")
             job_title = (info.get('jobTitle') or '') if info else ''
             salary = (info.get('salary') or '') if info else ''
             city = (info.get('city') or '') if info else ''
-            if any([job_title, salary, city]):
-                print(f"  [header] 岗位={job_title}, 薪资={salary}, 城市={city}")
+            if info.get('_cityDebug'):
+                print(f"  [header诊断] {info['_cityDebug']}")
             return info or {'jobTitle': '', 'salary': '', 'city': ''}
         except Exception as e:
             print(f"  ⚠️ read_chat_header_info 异常: {e}")
@@ -1732,7 +1739,12 @@ class BossAutomation(BossScraper):
             msgs = self.read_visible_messages()
             online_status = self.read_chat_online_status()
             header_info = self.read_chat_header_info()
-            print(f"  [监控] 会话 {matched_conv.get('hr_name')}: 读到 {len(msgs)} 条消息, 在线={online_status}, header={header_info}")
+            _jt = (header_info.get('jobTitle') or '').strip()
+            _sal = (header_info.get('salary') or '').strip()
+            _city = (header_info.get('city') or '').strip()
+            _parts = [p for p in [_jt, _sal, _city] if p]
+            _job_str = ' · '.join(_parts) if _parts else '-'
+            print(f"  [监控] {matched_conv.get('hr_name')}: {len(msgs)}条消息, 在线={online_status}, 岗位={_job_str}")
 
             new_count = 0
             clean_msgs = []
