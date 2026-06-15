@@ -1611,8 +1611,8 @@ td a:hover{color:var(--accent)}
     <!-- Tab 1: Search -->
     <div class="tab active" id="tab-search">
       <div class="search-shell" id="searchShell">
-        <div class="search-row" style="flex-wrap:nowrap;align-items:center;">
-          <div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;flex:1;">
+        <div class="search-row" style="flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1;">
             <select id="searchSalary" class="search-select">
               <option value="">薪资不限</option>
               <option value="402">3K以下</option>
@@ -2850,7 +2850,7 @@ function pickDistrict(name,code){
     document.getElementById('districtTrigger').style.width='';
   }else{
     var names=selectedDistricts.map(function(d){return d.name;});
-    var txt=names.length>2?names.slice(0,2).join('+')+'... (+'+names.length+')':names.join('+');
+    var txt=names.length>2?names.slice(0,2).join('+')+'... ('+names.length+')':names.join('+');
     document.getElementById('districtTriggerText').textContent=txt;
     document.getElementById('districtTrigger').style.width='';
   }
