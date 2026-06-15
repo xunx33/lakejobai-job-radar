@@ -2397,7 +2397,7 @@ function selectConversation(id){
   // 显示同步遮罩，不立即加载旧缓存
   const pane=document.getElementById('chatMessages');
   pane.classList.add('syncing');
-  pane.innerHTML='<div class="sync-overlay"><div class="spinner"></div><div class="sync-text">同步聊天数据中...</div></div>';
+  pane.innerHTML='<div class="sync-overlay"><div class="spinner"></div><div class="sync-text">正在对齐颗粒度...📡</div></div>';
   let conv=conversations.find(c=>c.id===id);if(!conv)return;
   const initial=(conv.hr_name||'?').slice(0,1).toUpperCase();
   // 只保留岗位名（后端从 .position-name 精确 class 提取）
