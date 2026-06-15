@@ -1768,6 +1768,10 @@ class BossAutomation(BossScraper):
                 if online_status:
                     updates.append("online_status=?")
                     params.append(online_status)
+                else:
+                    # 对方离线时清空在线状态，否则旧的"在线"会一直保留
+                    updates.append("online_status=?")
+                    params.append("")
                 # 岗位名/薪资/城市：有值就覆盖，无值不更新（保留旧值）
                 _jt = (header_info.get('jobTitle') or '').strip()
                 if _jt:

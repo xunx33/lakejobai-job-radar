@@ -1902,6 +1902,10 @@ async def sync_conversation_messages(conv_id: int):
                     if online_status:
                         updates.append("online_status=?")
                         params.append(online_status)
+                    else:
+                        # 对方离线时清空在线状态
+                        updates.append("online_status=?")
+                        params.append("")
                     if _jt:
                         updates.append("job_title=?")
                         params.append(_jt)
