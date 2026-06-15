@@ -12,10 +12,19 @@ import random
 import re
 import sys
 import time
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, List
 from urllib.parse import urljoin, quote_plus
+
+# ── 给所有 print 输出加时间戳 ──
+import builtins
+_original_print = builtins.print
+def _ts_print(*args, **kwargs):
+    ts = datetime.now().strftime('%H:%M:%S')
+    _original_print(f"[{ts}]", *args, **kwargs)
+builtins.print = _ts_print
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
